@@ -17,6 +17,8 @@ This is a pnpm monorepo (`pnpm@9.15.4`, Node >= 22). Key apps live under `apps/`
 - The shared `LogResponse` type uses `content` (matching the DB schema). The API SSE stream at `/agents/:agentId/logs` also returns `content`. The `useLogStream` hook (`lib/use-log-stream.ts`) handles both `content` and `message` fields defensively for backwards compatibility.
 - The `AgentLogViewer` component accepts `maxLines` (default 500) and uses the `useLogStream` hook for SSE streaming. It only renders in `AgentDetail` when agent status is `running` or `error`.
 
+- **Gotcha: dirty working tree from prior sessions** — Previous agent sessions may leave uncommitted modifications or untracked files in the working directory. Before making changes, run `git diff --name-only HEAD` and `git status` to identify stale files, then `git checkout HEAD -- <file>` any files you did not intend to modify. Leftover dirty files can cause subtle test failures (e.g., mock hoisting issues in vitest).
+
 ### API (`apps/api`)
 
 - **Dev server**: `pnpm dev:api` (uses `tsx watch`)
