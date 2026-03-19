@@ -5,7 +5,11 @@ import { useBoardStore } from '../../stores/board-store.js';
 import { useAgentStore } from '../../stores/agent-store.js';
 
 vi.mock('../../stores/ui-store.js', () => ({
-  useUiStore: vi.fn(),
+  useUiStore: Object.assign(vi.fn(), {
+    getState: () => ({
+      openCommandPalette: vi.fn(),
+    }),
+  }),
 }));
 
 vi.mock('../../stores/board-store.js', () => ({

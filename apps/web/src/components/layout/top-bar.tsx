@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { Link, useNavigate } from 'react-router';
-import { Blocks, Plus, Settings } from 'lucide-react';
+import { Blocks, Plus, Search, Settings } from 'lucide-react';
 import { useBoardStore } from '../../stores/board-store.js';
 import { useUiStore } from '../../stores/ui-store.js';
 import { AgentCreateDialog } from '../agent/agent-create-dialog.js';
@@ -75,6 +75,22 @@ export function TopBar() {
           >
             <Plus className="h-4 w-4" />
             New Agent
+          </button>
+          <button
+            type="button"
+            onClick={() => useUiStore.getState().openCommandPalette()}
+            className={cn(
+              'flex items-center gap-2 rounded-full border border-border px-3 py-1.5 text-sm text-text-secondary',
+              'hover:border-border-strong hover:bg-surface-hover hover:text-text-primary transition-colors',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+            )}
+            aria-label="Open command palette"
+          >
+            <Search className="h-4 w-4" />
+            <span className="hidden sm:inline">Search...</span>
+            <kbd className="hidden sm:inline-flex items-center rounded border border-border bg-background px-1.5 py-0.5 text-[10px] font-medium text-text-tertiary">
+              ⌘K
+            </kbd>
           </button>
           <Link
             to="/settings"
