@@ -1,0 +1,19 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "model": "openrouter/minimax/minimax-m2.7",
+  "small_model": "openrouter/minimax/minimax-m2.7",
+  "plugin": ["oh-my-opencode"],
+  "autoupdate": true,
+  "server": {
+    "port": 4096,
+    "hostname": "0.0.0.0",
+    "cors": ["http://localhost:5173", "http://localhost:3000"]
+  },
+  "instructions": [
+    "README.md",
+    "SPEC.md"
+  ],
+  "experimental": {
+    "ultrawork": true
+  }
+}

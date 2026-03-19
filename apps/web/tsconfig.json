@@ -1,0 +1,17 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "target": "ES2024",
+    "lib": ["ES2024", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+    "types": ["vitest/globals"],
+
+    "paths": {
+      "@/*": ["./src/*"],
+      "@command-center/shared": ["../../packages/shared/src"]
+    }
+  },
+  "include": ["src", "src/**/*.tsx", "src/**/*.d.ts"]
+}

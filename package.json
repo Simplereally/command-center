@@ -1,0 +1,37 @@
+{
+  "name": "@command-center/root",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "pnpm --parallel --filter './apps/*' run dev",
+    "dev:web": "pnpm --filter @command-center/web run dev",
+    "dev:api": "pnpm --filter @command-center/api run dev",
+    "build": "pnpm --filter './packages/*' run build && pnpm --filter './apps/*' run build",
+    "test": "pnpm -r run test",
+    "test:web": "pnpm --filter @command-center/web run test",
+    "test:api": "pnpm --filter @command-center/api run test",
+    "lint": "pnpm -r run lint",
+    "typecheck": "pnpm -r run typecheck",
+    "db:generate": "pnpm --filter @command-center/api run db:generate",
+    "db:migrate": "pnpm --filter @command-center/api run db:migrate",
+    "db:studio": "pnpm --filter @command-center/api run db:studio",
+    "clean": "pnpm -r run clean && rm -rf node_modules"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.17.0",
+    "eslint": "^9.17.0",
+    "eslint-plugin-react": "^7.37.3",
+    "eslint-plugin-react-hooks": "^5.1.0",
+    "eslint-plugin-react-refresh": "^0.4.16",
+    "prettier": "^3.4.2",
+    "typescript": "^5.7.3",
+    "typescript-eslint": "^8.18.0"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "packageManager": "pnpm@9.15.4",
+  "dependencies": {
+    "react-error-boundary": "^6.1.1"
+  }
+}

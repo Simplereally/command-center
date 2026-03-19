@@ -1,0 +1,13 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "lib": ["ES2024"],
+    "types": ["node"],
+    "paths": {
+      "@command-center/shared": ["../../packages/shared/src"],
+      "@command-center/tmux": ["../../packages/tmux/src"]
+    }
+  },
+  "include": ["src"]
+}
