@@ -95,7 +95,8 @@ export class TmuxClient {
    * Send keys to a tmux session, followed by Enter.
    */
   async sendKeys(sessionId: string, keys: string): Promise<void> {
-    const cmd = `${this.buildBaseCommand()} send-keys -t ${sessionId} ${keys} Enter`;
+    const escapedKeys = keys.replace(/'/g, "'\\''");
+    const cmd = `${this.buildBaseCommand()} send-keys -t ${sessionId} '${escapedKeys}' Enter`;
     await this.exec(cmd);
   }
 
