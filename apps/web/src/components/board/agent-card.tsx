@@ -3,6 +3,7 @@ import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Terminal, RotateCcw, Trash2, GripVertical } from 'lucide-react';
 import { motion, useReducedMotion } from 'framer-motion';
+import { toast } from 'sonner';
 import type { AgentResponse } from '@command-center/shared';
 import { useUiStore } from '../../stores/ui-store.js';
 import { useAgentStore } from '../../stores/agent-store.js';
@@ -77,13 +78,36 @@ export function AgentCard({ agent }: AgentCardProps) {
     openTerminalPanel(agent.id);
   }, [closeContextMenu, openTerminalPanel, agent.id]);
 
-  const handleRestart = useCallback(() => {
-    closeContextMenu();
-  }, [closeContextMenu]);
+  const [isRestarting, setIsRestarting] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
-  const handleDelete = useCallback(() => {
+  const handleRestart = useCallback(async () => {
     closeContextMenu();
-  }, [closeContextMenu]);
+    setIsRestarting(true);
+    try {
+      await useAgentStore.getState().restartAgent(agent.id);
+      toast.success(`Agent "${agent.name}" restarted`);
+    } catch (err) {
+      toast.error(`Failed to restart agent: ${err instanceof Error ? err.message : 'Unknown error'}`);
+    } finally {
+      setIsRestarting(false);
+    }
+  }, [closeContextMenu, agent.id, agent.name]);
+
+  const handleDelete = useCallback(async () => {
+    closeContextMenu();
+    const confirmed = window.confirm(`Are you sure you want to delete "${agent.name}"?`);
+    if (!confirmed) return;
+    setIsDeleting(true);
+    try {
+      await useAgentStore.getState().deleteAgent(agent.id);
+      toast.success(`Agent "${agent.name}" deleted`);
+    } catch (err) {
+      toast.error(`Failed to delete agent: ${err instanceof Error ? err.message : 'Unknown error'}`);
+    } finally {
+      setIsDeleting(false);
+    }
+  }, [closeContextMenu, agent.id, agent.name]);
 
   return (
     <motion.div
@@ -100,6 +124,7 @@ export function AgentCard({ agent }: AgentCardProps) {
         'group relative cursor-pointer rounded-lg border border-border bg-surface p-3',
         'hover:bg-surface-hover hover:shadow-md transition-all',
         isSelected && 'ring-2 ring-accent',
+        (isRestarting || isDeleting) && 'opacity-60 pointer-events-none',
       )}
     >
       <div className="flex items-center justify-between">
@@ -164,19 +189,21 @@ export function AgentCard({ agent }: AgentCardProps) {
           </button>
           <button
             type="button"
-            className="flex w-full items-center gap-2 px-3 py-2 text-sm text-text-primary hover:bg-surface-hover cursor-pointer"
+            className="flex w-full items-center gap-2 px-3 py-2 text-sm text-text-primary hover:bg-surface-hover cursor-pointer disabled:opacity-50"
             onClick={handleRestart}
+            disabled={isRestarting}
           >
-            <RotateCcw className="h-3.5 w-3.5" />
-            Restart
+            <RotateCcw className={cn('h-3.5 w-3.5', isRestarting && 'animate-spin')} />
+            {isRestarting ? 'Restarting…' : 'Restart'}
           </button>
           <button
             type="button"
-            className="flex w-full items-center gap-2 px-3 py-2 text-sm text-text-primary hover:bg-surface-hover cursor-pointer"
+            className="flex w-full items-center gap-2 px-3 py-2 text-sm text-danger hover:bg-surface-hover cursor-pointer disabled:opacity-50"
             onClick={handleDelete}
+            disabled={isDeleting}
           >
             <Trash2 className="h-3.5 w-3.5" />
-            Delete
+            {isDeleting ? 'Deleting…' : 'Delete'}
           </button>
         </div>
       )}

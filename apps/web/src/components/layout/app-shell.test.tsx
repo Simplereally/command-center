@@ -16,6 +16,14 @@ vi.mock('../../stores/agent-store.js', () => ({
   useAgentStore: vi.fn(),
 }));
 
+vi.mock('../../lib/api-client.js', () => ({
+  api: {
+    tmux: {
+      listSessions: vi.fn().mockResolvedValue([]),
+    },
+  },
+}));
+
 function setupMocks(overrides: Record<string, unknown> = {}) {
   vi.mocked(useUiStore).mockImplementation(((selector: (s: Record<string, unknown>) => unknown) =>
     selector({
@@ -25,11 +33,14 @@ function setupMocks(overrides: Record<string, unknown> = {}) {
       closeSidePanel: vi.fn(),
     })) as never);
 
+  const currentBoard = { id: 'board-1', name: 'Test Board', createdAt: '', updatedAt: '' };
   vi.mocked(useBoardStore).mockImplementation(((
     selector: (s: Record<string, unknown>) => unknown,
   ) =>
     selector({
-      currentBoard: { id: 'board-1', name: 'Test Board', createdAt: '', updatedAt: '' },
+      currentBoard,
+      boards: [currentBoard],
+      fetchBoards: vi.fn(),
       swimlanes: [
         {
           id: 'lane-1',

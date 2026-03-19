@@ -6,12 +6,16 @@ vi.mock('../../stores/board-store.js', () => ({
   useBoardStore: vi.fn(),
 }));
 
-function mockBoardState(currentBoard: Record<string, unknown> | null) {
+const mockFetchBoards = vi.fn();
+
+function mockBoardState(currentBoard: Record<string, unknown> | null, boards?: Record<string, unknown>[]) {
   vi.mocked(useBoardStore).mockImplementation(((
     selector: (s: Record<string, unknown>) => unknown,
   ) =>
     selector({
       currentBoard,
+      boards: boards ?? (currentBoard ? [currentBoard] : []),
+      fetchBoards: mockFetchBoards,
       swimlanes: [
         {
           id: 'lane-1',

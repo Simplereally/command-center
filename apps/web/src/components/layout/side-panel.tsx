@@ -1,9 +1,14 @@
+import { useState, useCallback, useMemo } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { X } from 'lucide-react';
 import { useUiStore } from '../../stores/ui-store.js';
 import { useAgentStore } from '../../stores/agent-store.js';
 import { AgentDetail } from '../agent/agent-detail.js';
+import { TerminalPanel } from '../terminal/terminal-panel.js';
+import type { TerminalSession } from '../terminal/terminal-panel.js';
 import { ErrorBoundary } from '../error-boundary/index.js';
+
+const WS_BASE_URL = 'ws://localhost:4000';
 
 export function SidePanel() {
   const sidePanelMode = useUiStore((s) => s.sidePanelMode);
@@ -12,6 +17,36 @@ export function SidePanel() {
   const agents = useAgentStore((s) => s.agents);
   const selectedAgent = selectedAgentId ? agents.get(selectedAgentId) : null;
   const prefersReducedMotion = useReducedMotion();
+
+  const [terminalSessions, setTerminalSessions] = useState<TerminalSession[]>([]);
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
+
+  const sessions = useMemo<TerminalSession[]>(() => {
+    if (!selectedAgent?.tmuxSession) return terminalSessions;
+    const agentSession: TerminalSession = {
+      id: selectedAgent.id,
+      name: selectedAgent.tmuxSession,
+      sessionId: selectedAgent.tmuxSession,
+      wsUrl: `${WS_BASE_URL}/api/v1/tmux/sessions/${selectedAgent.tmuxSession}/terminal`,
+    };
+    const hasAgent = terminalSessions.some((s) => s.id === selectedAgent.id);
+    return hasAgent ? terminalSessions : [agentSession, ...terminalSessions];
+  }, [selectedAgent, terminalSessions]);
+
+  const effectiveActiveSessionId = activeSessionId ?? sessions[0]?.sessionId ?? null;
+
+  const handleSessionSelect = useCallback((sessionId: string) => {
+    setActiveSessionId(sessionId);
+  }, []);
+
+  const handleSessionClose = useCallback((sessionId: string) => {
+    setTerminalSessions((prev) => prev.filter((s) => s.sessionId !== sessionId));
+    setActiveSessionId((prev) => (prev === sessionId ? null : prev));
+  }, []);
+
+  const handleSessionCreate = useCallback(() => {
+    // handled internally by TerminalPanel
+  }, []);
 
   if (sidePanelMode === 'closed') {
     return null;
@@ -55,9 +90,20 @@ export function SidePanel() {
             <AgentDetail agent={selectedAgent} />
           </ErrorBoundary>
         )}
-        {sidePanelMode === 'terminal' && (
+        {sidePanelMode === 'terminal' && selectedAgentId && (
+          <ErrorBoundary>
+            <TerminalPanel
+              sessions={sessions}
+              activeSessionId={effectiveActiveSessionId}
+              onSessionSelect={handleSessionSelect}
+              onSessionClose={handleSessionClose}
+              onSessionCreate={handleSessionCreate}
+            />
+          </ErrorBoundary>
+        )}
+        {sidePanelMode === 'terminal' && !selectedAgentId && (
           <div className="flex h-full items-center justify-center p-6">
-            <p className="text-sm text-text-secondary">Terminal View</p>
+            <p className="text-sm text-text-secondary">No agent selected</p>
           </div>
         )}
         {sidePanelMode === 'detail' && !selectedAgent && (

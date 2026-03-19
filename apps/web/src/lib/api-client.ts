@@ -22,6 +22,13 @@ export class ApiError extends Error {
   }
 }
 
+export interface TmuxSessionInfo {
+  id: string;
+  name: string;
+  createdAt: string;
+  attached: boolean;
+}
+
 interface ApiResponse<T> {
   data: T;
 }
@@ -176,6 +183,13 @@ class ApiClient {
     },
 
     streamUrl: (agentId: string): string => `${this.baseUrl}/agents/${agentId}/logs`,
+  };
+
+  // ── Tmux ──────────────────────────────────────
+
+  readonly tmux = {
+    listSessions: (): Promise<TmuxSessionInfo[]> =>
+      this.request<TmuxSessionInfo[]>('/tmux/sessions'),
   };
 
   // ── Metrics ─────────────────────────────────────

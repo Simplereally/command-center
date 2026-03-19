@@ -7,6 +7,14 @@ vi.mock('../../stores/agent-store.js', () => ({
   useAgentStore: vi.fn(),
 }));
 
+vi.mock('../../lib/api-client.js', () => ({
+  api: {
+    tmux: {
+      listSessions: vi.fn().mockResolvedValue([]),
+    },
+  },
+}));
+
 function makeAgent(overrides: Partial<AgentResponse> = {}): AgentResponse {
   return {
     id: 'agent-1',

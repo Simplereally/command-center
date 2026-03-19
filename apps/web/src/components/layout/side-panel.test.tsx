@@ -21,6 +21,10 @@ vi.mock('../agent/agent-detail.js', () => ({
   ),
 }));
 
+vi.mock('../terminal/terminal-panel.js', () => ({
+  TerminalPanel: () => <div data-testid="terminal-panel">Terminal Panel Mock</div>,
+}));
+
 function makeAgent(overrides: Partial<AgentResponse> = {}): AgentResponse {
   return {
     id: 'agent-1',
@@ -123,13 +127,23 @@ describe('SidePanel', () => {
     expect(screen.getByText('Agent Detail View')).toBeInTheDocument();
   });
 
-  it('shows "Terminal View" in terminal mode', () => {
+  it('shows "No agent selected" in terminal mode without agent', () => {
     mockUiState({ sidePanelMode: 'terminal', selectedAgentId: null });
     mockAgentState(new Map());
 
     render(<SidePanel />);
 
-    expect(screen.getByText('Terminal View')).toBeInTheDocument();
+    expect(screen.getByText('No agent selected')).toBeInTheDocument();
+  });
+
+  it('renders TerminalPanel in terminal mode with selected agent', () => {
+    const agent = makeAgent({ id: 'agent-1', name: 'Test Agent' });
+    mockUiState({ sidePanelMode: 'terminal', selectedAgentId: 'agent-1' });
+    mockAgentState(new Map([['agent-1', agent]]));
+
+    render(<SidePanel />);
+
+    expect(screen.getByTestId('terminal-panel')).toBeInTheDocument();
   });
 
   it('close button calls closeSidePanel', async () => {

@@ -1,4 +1,5 @@
-import { Link } from 'react-router';
+import { useEffect } from 'react';
+import { Link, useNavigate } from 'react-router';
 import { Blocks, Plus, Settings } from 'lucide-react';
 import { useBoardStore } from '../../stores/board-store.js';
 import { useUiStore } from '../../stores/ui-store.js';
@@ -7,10 +8,17 @@ import { cn } from '../../lib/cn.js';
 
 export function TopBar() {
   const currentBoard = useBoardStore((s) => s.currentBoard);
+  const boards = useBoardStore((s) => s.boards);
+  const fetchBoards = useBoardStore((s) => s.fetchBoards);
   const swimlanes = useBoardStore((s) => s.swimlanes);
   const dialogOpen = useUiStore((s) => s.createAgentDialogOpen);
   const openDialog = useUiStore((s) => s.openCreateAgentDialog);
   const closeDialog = useUiStore((s) => s.closeCreateAgentDialog);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    fetchBoards();
+  }, [fetchBoards]);
 
   const notStartedSwimlane = swimlanes.find((s) => s.slug === 'not-started');
 
@@ -34,14 +42,20 @@ export function TopBar() {
               'hover:border-border-strong focus:border-accent focus:outline-none',
             )}
             value={currentBoard?.id ?? ''}
-            onChange={() => {}}
+            onChange={(e) => {
+              const boardId = e.target.value;
+              if (boardId) {
+                navigate(`/boards/${boardId}`);
+              }
+            }}
             aria-label="Select board"
           >
-            {currentBoard ? (
-              <option value={currentBoard.id}>{currentBoard.name}</option>
-            ) : (
-              <option value="">No board selected</option>
-            )}
+            {!currentBoard && <option value="">No board selected</option>}
+            {boards.map((board) => (
+              <option key={board.id} value={board.id}>
+                {board.name}
+              </option>
+            ))}
           </select>
         </div>
 
