@@ -140,7 +140,7 @@ describe('TmuxClient', () => {
       await client.sendKeys('$0', 'ls -la');
 
       expect(mockExec).toHaveBeenCalledWith(
-        expect.stringContaining('send-keys -t $0 ls -la Enter'),
+        expect.stringContaining("send-keys -t $0 'ls -la' Enter"),
         expect.any(Function),
       );
     });
