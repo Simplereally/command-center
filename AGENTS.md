@@ -11,6 +11,7 @@ This is a pnpm monorepo (`pnpm@9.15.4`, Node >= 22). Key apps live under `apps/`
 - Zustand stores (`stores/`) use `immer` middleware. Tests mock stores at the module level via `vi.mock()`.
 - When adding new store selectors consumed by existing components, update ALL test files that mock that store (e.g., `top-bar.test.tsx`, `app-shell.test.tsx`), not just the component's own test.
 - `sonner` is the toast library; import `toast` from `'sonner'`.
+- The `api` client (`lib/api-client.ts`) wraps `fetch` for all backend endpoints. When StatusBar or other components use it, test files that render those components must mock `../../lib/api-client.js`.
 
 ### API (`apps/api`)
 
