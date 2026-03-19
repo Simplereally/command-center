@@ -7,6 +7,12 @@ const mockStopAgent = vi.fn();
 const mockRestartAgent = vi.fn();
 const mockOpenTerminalPanel = vi.fn();
 
+vi.mock('./agent-log-viewer.js', () => ({
+  AgentLogViewer: ({ agentId }: { agentId: string }) => (
+    <div data-testid="agent-log-viewer" data-agent-id={agentId} />
+  ),
+}));
+
 vi.mock('../../stores/agent-store.js', () => ({
   useAgentStore: () => ({
     startAgent: mockStartAgent,
