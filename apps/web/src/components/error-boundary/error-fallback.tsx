@@ -6,7 +6,7 @@ export function ErrorFallback() {
 
   return (
     <div role="alert" className="flex flex-col items-center justify-center p-8 text-center">
-      <div className="mb-4 rounded-full bg-destructive/10 p-4">
+      <div className="mb-4 rounded-full bg-destructive-muted p-4">
         <AlertTriangle className="h-8 w-8 text-destructive" />
       </div>
       <h2 className="mb-2 text-lg font-semibold text-text-primary">Something went wrong</h2>

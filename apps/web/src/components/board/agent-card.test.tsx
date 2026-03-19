@@ -100,23 +100,22 @@ describe('AgentCard', () => {
     expect(mockOpenDetailPanel).toHaveBeenCalledWith('agent-42');
   });
 
-  it('shows selected state ring when selected', () => {
+  it('shows selected state glow when selected', () => {
     mockSelectedAgentId.value = 'agent-1';
 
     render(<AgentCard agent={makeAgent({ id: 'agent-1' })} />);
 
     const card = screen.getByTestId('agent-card-agent-1');
-    expect(card.className).toContain('ring-2');
-    expect(card.className).toContain('ring-accent');
+    expect(card.className).toContain('shadow-glow');
   });
 
-  it('does not show selected ring when not selected', () => {
+  it('does not show selected glow when not selected', () => {
     mockSelectedAgentId.value = 'agent-other';
 
     render(<AgentCard agent={makeAgent({ id: 'agent-1' })} />);
 
     const card = screen.getByTestId('agent-card-agent-1');
-    expect(card.className).not.toContain('ring-2');
+    expect(card.className).not.toContain('shadow-glow');
   });
 
   it('has correct aria-label', () => {

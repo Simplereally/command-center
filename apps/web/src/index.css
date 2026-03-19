@@ -23,11 +23,16 @@
   --color-status-starting: hsl(280 68% 60%);
   --color-status-stopping: hsl(24 80% 55%);
   --color-terminal-bg: hsl(0 0% 4%);
+  --color-destructive: hsl(0 72% 56%);
+  --color-danger: hsl(0 72% 56%);
+  --color-destructive-muted: hsl(0 72% 56% / 0.15);
+  --color-surface-card: hsl(240 5% 12%);
+  --color-accent-foreground: hsl(0 0% 100%);
 
   --shadow-sm: 0 1px 2px 0 hsl(0 0% 0% / 0.3);
-  --shadow-md: 0 4px 6px -1px hsl(0 0% 0% / 0.4), 0 2px 4px -2px hsl(0 0% 0% / 0.3);
-  --shadow-lg: 0 10px 15px -3px hsl(0 0% 0% / 0.5), 0 4px 6px -4px hsl(0 0% 0% / 0.4);
-  --shadow-glow: 0 0 20px hsl(217 91% 60% / 0.15);
+  --shadow-md: 0 4px 12px hsl(0 0% 0% / 0.4);
+  --shadow-lg: 0 8px 24px hsl(0 0% 0% / 0.5);
+  --shadow-glow: 0 0 0 1px var(--color-accent), 0 0 12px var(--color-accent-muted);
 
   --font-sans: 'Geist Sans', ui-sans-serif, system-ui, sans-serif;
   --font-mono: 'Geist Mono', ui-monospace, monospace;
@@ -73,6 +78,11 @@
   ::-webkit-scrollbar-thumb:hover {
     background: var(--color-border-strong);
   }
+
+  :focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+  }
 }
 
 /* ── Base Styles ──────────────────────────────────────────────────────── */
@@ -115,5 +125,14 @@
 
   ::-webkit-scrollbar-thumb:hover {
     background: var(--color-border-strong);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

@@ -121,9 +121,10 @@ export function AgentCard({ agent }: AgentCardProps) {
       onClick={() => openDetailPanel(agent.id)}
       onContextMenu={handleContextMenu}
       className={cn(
-        'group relative cursor-pointer rounded-lg border border-border bg-surface p-3',
-        'hover:bg-surface-hover hover:shadow-md transition-all',
-        isSelected && 'ring-2 ring-accent',
+        'group relative cursor-pointer rounded-xl border border-border bg-surface p-4',
+        'hover:bg-surface-hover hover:shadow-lg hover:-translate-y-0.5 transition-all',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+        isSelected && 'shadow-glow ring-1 ring-accent',
         (isRestarting || isDeleting) && 'opacity-60 pointer-events-none',
       )}
     >
@@ -181,7 +182,7 @@ export function AgentCard({ agent }: AgentCardProps) {
         >
           <button
             type="button"
-            className="flex w-full items-center gap-2 px-3 py-2 text-sm text-text-primary hover:bg-surface-hover cursor-pointer"
+            className="flex w-full items-center gap-2 px-3 py-2 text-sm text-text-primary hover:bg-surface-hover cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
             onClick={handleOpenTerminal}
           >
             <Terminal className="h-3.5 w-3.5" />
@@ -189,7 +190,7 @@ export function AgentCard({ agent }: AgentCardProps) {
           </button>
           <button
             type="button"
-            className="flex w-full items-center gap-2 px-3 py-2 text-sm text-text-primary hover:bg-surface-hover cursor-pointer disabled:opacity-50"
+            className="flex w-full items-center gap-2 px-3 py-2 text-sm text-text-primary hover:bg-surface-hover cursor-pointer disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
             onClick={handleRestart}
             disabled={isRestarting}
           >
@@ -198,7 +199,7 @@ export function AgentCard({ agent }: AgentCardProps) {
           </button>
           <button
             type="button"
-            className="flex w-full items-center gap-2 px-3 py-2 text-sm text-danger hover:bg-surface-hover cursor-pointer disabled:opacity-50"
+            className="flex w-full items-center gap-2 px-3 py-2 text-sm text-destructive hover:bg-surface-hover cursor-pointer disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
             onClick={handleDelete}
             disabled={isDeleting}
           >

@@ -11,7 +11,7 @@ interface AgentCreateDialogProps {
 }
 
 const inputClasses =
-  'w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-accent';
+  'w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background';
 
 export function AgentCreateDialog({ open, onClose, boardId, swimlaneId }: AgentCreateDialogProps) {
   const { createAgent } = useAgentStore();
@@ -100,7 +100,7 @@ export function AgentCreateDialog({ open, onClose, boardId, swimlaneId }: AgentC
     >
       <div
         data-testid="agent-create-dialog"
-        className="w-full max-w-md rounded-xl border border-border bg-surface shadow-xl"
+        className="w-full max-w-md rounded-2xl border border-border bg-surface shadow-xl"
         role="dialog"
         aria-modal="true"
         aria-labelledby="agent-create-dialog-title"
@@ -112,7 +112,7 @@ export function AgentCreateDialog({ open, onClose, boardId, swimlaneId }: AgentC
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg p-1 text-text-secondary hover:bg-surface-hover hover:text-text-primary"
+            className="rounded-lg p-1 text-text-secondary hover:bg-surface-hover hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             aria-label="Close"
           >
             <X className="h-5 w-5" />
@@ -192,6 +192,7 @@ export function AgentCreateDialog({ open, onClose, boardId, swimlaneId }: AgentC
               onClick={onClose}
               className={cn(
                 'rounded-lg px-4 py-2 text-sm text-text-secondary hover:bg-surface-hover',
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background',
               )}
             >
               Cancel
@@ -201,6 +202,7 @@ export function AgentCreateDialog({ open, onClose, boardId, swimlaneId }: AgentC
               disabled={loading}
               className={cn(
                 'rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-hover disabled:opacity-50',
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background',
               )}
             >
               {loading ? 'Creating...' : 'Create'}

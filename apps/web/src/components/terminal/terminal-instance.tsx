@@ -158,7 +158,7 @@ export function TerminalInstance({ sessionId, wsUrl, className }: TerminalInstan
         const terminal = new Terminal({
           cursorBlink: true,
           fontSize: 14,
-          fontFamily: 'Menlo, Monaco, "Courier New", monospace',
+          fontFamily: '"Geist Mono", "JetBrains Mono", "Fira Code", monospace',
           theme: {
             background: '#0d1117',
             foreground: '#c9d1d9',

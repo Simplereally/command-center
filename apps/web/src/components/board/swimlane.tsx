@@ -27,7 +27,7 @@ export function Swimlane({ lane, agents, isCollapsed }: SwimlaneProps) {
       style={{ borderLeft: `3px solid ${lane.color}` }}
     >
       <div
-        className="flex items-center justify-between px-3 py-2 cursor-pointer hover:bg-surface-hover rounded-t-lg"
+        className="flex items-center justify-between px-3 py-2 cursor-pointer hover:bg-surface-hover rounded-t-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
         onClick={() => toggleLaneCollapse(lane.id)}
       >
         <div className="flex items-center gap-2">
@@ -49,7 +49,7 @@ export function Swimlane({ lane, agents, isCollapsed }: SwimlaneProps) {
         <div
           ref={setNodeRef}
           className={`flex flex-col gap-2 p-3 pt-0 min-h-[100px] rounded-b-lg transition-colors ${
-            isOver ? 'bg-accent/5' : ''
+            isOver ? 'bg-accent/5 border-2 border-dashed border-accent' : ''
           }`}
         >
           <SortableContext items={agentIds} strategy={verticalListSortingStrategy}>
