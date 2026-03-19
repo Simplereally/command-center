@@ -63,9 +63,12 @@ export class TmuxClient {
   /**
    * Create a new detached tmux session.
    */
-  async createSession(name: string, command?: string): Promise<TmuxSession> {
+  async createSession(name: string, command?: string, options?: { startDir?: string }): Promise<TmuxSession> {
     const base = this.buildBaseCommand();
     let cmd = `${base} new-session -d -s ${name}`;
+    if (options?.startDir) {
+      cmd += ` -c ${options.startDir}`;
+    }
     if (command) {
       cmd += ` ${command}`;
     }
