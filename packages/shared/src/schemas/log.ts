@@ -6,7 +6,7 @@ export const logResponseSchema = z.object({
   id: z.string(),
   agentId: z.string(),
   level: logLevelSchema,
-  message: z.string(),
+  content: z.string(),
   timestamp: z.string().datetime(),
 });
 
