@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { createMiddleware } from 'hono/factory';
+import { createNodeWebSocket } from '@hono/node-ws';
 import { nanoid } from 'nanoid';
 import { AppError } from './lib/errors.js';
 import { logger } from './lib/logger.js';
@@ -10,7 +11,7 @@ import swimlanes from './routes/swimlanes.js';
 import agents from './routes/agents.js';
 import logs from './routes/logs.js';
 import metrics from './routes/metrics.js';
-import tmux from './routes/tmux.js';
+import tmux, { registerTerminalWebSocket } from './routes/tmux.js';
 
 type Variables = {
   requestId: string;
@@ -23,8 +24,13 @@ const requestIdMiddleware = createMiddleware<{ Variables: Variables }>(async (c,
   await next();
 });
 
+export let injectWebSocket: ReturnType<typeof createNodeWebSocket>['injectWebSocket'];
+
 export function createApp(): Hono<{ Variables: Variables }> {
   const app = new Hono<{ Variables: Variables }>();
+
+  const nodeWs = createNodeWebSocket({ app });
+  injectWebSocket = nodeWs.injectWebSocket;
 
   app.use(
     '*',
@@ -36,6 +42,8 @@ export function createApp(): Hono<{ Variables: Variables }> {
   );
 
   app.use('*', requestIdMiddleware);
+
+  registerTerminalWebSocket(nodeWs.upgradeWebSocket);
 
   const api = new Hono<{ Variables: Variables }>();
   api.route('/', health);

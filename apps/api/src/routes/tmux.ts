@@ -1,6 +1,10 @@
 import { Hono } from 'hono';
+import type { UpgradeWebSocket } from 'hono/ws';
+import type { WebSocket } from 'ws';
 import { TmuxClient, TmuxError } from '@command-center/tmux';
 import { AppError, ValidationError, NotFoundError } from '../lib/errors.js';
+import { TerminalHandler } from '../ws/terminal-handler.js';
+import { logger } from '../lib/logger.js';
 
 const tmux = new Hono();
 const client = new TmuxClient();
@@ -157,5 +161,40 @@ tmux.get('/sessions/:name/windows', async (c) => {
     throw error;
   }
 });
+
+export function registerTerminalWebSocket(
+  upgradeWebSocket: UpgradeWebSocket<WebSocket>,
+): void {
+  const terminalHandler = new TerminalHandler();
+
+  tmux.get(
+    '/sessions/:name/terminal',
+    upgradeWebSocket((c) => {
+      const sessionName = c.req.param('name') ?? '';
+
+      return {
+        onOpen(_evt, ws) {
+          if (!ws.raw) {
+            logger.error('WebSocket raw connection not available', { sessionName });
+            ws.close(1011, 'Internal error');
+            return;
+          }
+          terminalHandler.handleConnection(sessionName, ws.raw).catch((err) => {
+            logger.error('Terminal connection error', {
+              sessionName,
+              error: err instanceof Error ? err.message : String(err),
+            });
+          });
+        },
+        onError(evt) {
+          logger.error('WebSocket error', {
+            sessionName,
+            error: String(evt),
+          });
+        },
+      };
+    }),
+  );
+}
 
 export default tmux;
