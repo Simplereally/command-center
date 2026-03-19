@@ -14,6 +14,9 @@ This is a pnpm monorepo (`pnpm@9.15.4`, Node >= 22). Key apps live under `apps/`
 - The `api` client (`lib/api-client.ts`) wraps `fetch` for all backend endpoints. When StatusBar or other components use it, test files that render those components must mock `../../lib/api-client.js`.
 - Design tokens are defined in `src/index.css` inside the `@theme` block (Tailwind v4). All interactive elements must have `focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent`. Use `--color-status-error` (not `--color-destructive`) for error states in UI components.
 
+- The shared `LogResponse` type uses `content` (matching the DB schema). The API SSE stream at `/agents/:agentId/logs` also returns `content`. The `useLogStream` hook (`lib/use-log-stream.ts`) handles both `content` and `message` fields defensively for backwards compatibility.
+- The `AgentLogViewer` component accepts `maxLines` (default 500) and uses the `useLogStream` hook for SSE streaming. It only renders in `AgentDetail` when agent status is `running` or `error`.
+
 ### API (`apps/api`)
 
 - **Dev server**: `pnpm dev:api` (uses `tsx watch`)
