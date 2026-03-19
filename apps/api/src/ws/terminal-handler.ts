@@ -1,38 +1,22 @@
 import type { WebSocket } from 'ws';
 import { spawn, ChildProcess } from 'child_process';
 import { TmuxClient } from '@command-center/tmux';
+import type {
+  TerminalInputMessage,
+  TerminalResizeMessage,
+  TerminalOutputMessage,
+  TerminalExitMessage,
+  TerminalErrorMessage,
+} from '@command-center/shared';
 
-interface InputMessage {
-  type: 'input';
-  data: string;
-}
+type ClientMessage = TerminalInputMessage | TerminalResizeMessage;
 
-interface ResizeMessage {
-  type: 'resize';
-  cols: number;
-  rows: number;
-}
-
-type ClientMessage = InputMessage | ResizeMessage;
-
-interface OutputMessage {
-  type: 'output';
-  data: string;
-}
-
-interface ExitMessage {
-  type: 'exit';
-  code: number;
-}
-
-interface ErrorMessage {
-  type: 'error';
-  message: string;
-}
+const RESIZE_DEBOUNCE_MS = 100;
 
 export class TerminalHandler {
   private readonly tmuxClient: TmuxClient;
   private readonly processes: Map<string, ChildProcess> = new Map();
+  private readonly resizeTimers: Map<string, ReturnType<typeof setTimeout>> = new Map();
 
   constructor(tmuxClient?: TmuxClient) {
     this.tmuxClient = tmuxClient ?? new TmuxClient();
@@ -41,9 +25,10 @@ export class TerminalHandler {
   async handleConnection(sessionName: string, ws: WebSocket): Promise<void> {
     const exists = await this.tmuxClient.sessionExists(sessionName);
     if (!exists) {
-      const errorMsg: ErrorMessage = {
-        type: 'error',
-        message: `Session '${sessionName}' not found`,
+      const errorMsg: TerminalErrorMessage = {
+        type: 'terminal:error',
+        sessionId: sessionName,
+        error: `Session '${sessionName}' not found`,
       };
       ws.send(JSON.stringify(errorMsg));
       ws.close();
@@ -58,9 +43,10 @@ export class TerminalHandler {
         env: { ...process.env, TMUX: undefined, TMUX_PANE: undefined },
       });
     } catch (error) {
-      const errMsg: ErrorMessage = {
-        type: 'error',
-        message: error instanceof Error ? error.message : 'Failed to spawn shell',
+      const errMsg: TerminalErrorMessage = {
+        type: 'terminal:error',
+        sessionId: sessionName,
+        error: error instanceof Error ? error.message : 'Failed to spawn shell',
       };
       ws.send(JSON.stringify(errMsg));
       ws.close();
@@ -71,20 +57,20 @@ export class TerminalHandler {
 
     shell.stdout?.on('data', (data: Buffer) => {
       if (ws.readyState === ws.OPEN) {
-        const msg: OutputMessage = { type: 'output', data: data.toString() };
+        const msg: TerminalOutputMessage = { type: 'terminal:output', sessionId: sessionName, data: data.toString() };
         ws.send(JSON.stringify(msg));
       }
     });
 
     shell.stderr?.on('data', (data: Buffer) => {
       if (ws.readyState === ws.OPEN) {
-        const msg: OutputMessage = { type: 'output', data: data.toString() };
+        const msg: TerminalOutputMessage = { type: 'terminal:output', sessionId: sessionName, data: data.toString() };
         ws.send(JSON.stringify(msg));
       }
     });
 
     shell.on('exit', (code: number | null) => {
-      const exitMsg: ExitMessage = { type: 'exit', code: code ?? 0 };
+      const exitMsg: TerminalExitMessage = { type: 'terminal:exit', sessionId: sessionName, exitCode: code ?? 0, signal: null };
       if (ws.readyState === ws.OPEN) {
         ws.send(JSON.stringify(exitMsg));
       }
@@ -92,7 +78,7 @@ export class TerminalHandler {
     });
 
     shell.on('error', (error: Error) => {
-      const errMsg: ErrorMessage = { type: 'error', message: error.message };
+      const errMsg: TerminalErrorMessage = { type: 'terminal:error', sessionId: sessionName, error: error.message };
       if (ws.readyState === ws.OPEN) {
         ws.send(JSON.stringify(errMsg));
       }
@@ -100,67 +86,92 @@ export class TerminalHandler {
     });
 
     ws.on('message', (data: Buffer | string) => {
-      let message: ClientMessage;
+      let parsed: unknown;
       try {
-        const parsed = JSON.parse(data.toString());
-        message = parsed as ClientMessage;
+        parsed = JSON.parse(data.toString());
       } catch {
-        const errMsg: ErrorMessage = { type: 'error', message: 'Invalid JSON message' };
+        const errMsg: TerminalErrorMessage = { type: 'terminal:error', sessionId: sessionName, error: 'Invalid JSON message' };
         ws.send(JSON.stringify(errMsg));
         return;
       }
 
-      if (message.type === 'input' && shell.stdin) {
+      if (!validateClientMessage(parsed)) {
+        const errMsg: TerminalErrorMessage = { type: 'terminal:error', sessionId: sessionName, error: 'Invalid message format' };
+        ws.send(JSON.stringify(errMsg));
+        return;
+      }
+
+      const message: ClientMessage = parsed;
+
+      if (message.type === 'terminal:input' && shell.stdin) {
         shell.stdin.write(message.data);
-      } else if (message.type === 'resize') {
-        if (typeof message.cols === 'number' && typeof message.rows === 'number') {
-          spawn('tmux', [
-            'resize-pane',
-            '-t',
-            sessionName,
-            '-x',
-            String(message.cols),
-            '-y',
-            String(message.rows),
-          ]);
-        }
+      } else if (message.type === 'terminal:resize') {
+        this.debounceResize(sessionName, message.cols, message.rows);
       }
     });
 
     ws.on('close', () => {
+      this.clearResizeTimer(sessionName);
       this.processes.delete(sessionName);
     });
 
     ws.on('error', (_error: Error) => {
+      this.clearResizeTimer(sessionName);
       this.processes.delete(sessionName);
     });
   }
 
-  sendOutput(ws: WebSocket, data: string): void {
+  private debounceResize(sessionName: string, cols: number, rows: number): void {
+    this.clearResizeTimer(sessionName);
+    const timer = setTimeout(() => {
+      this.resizeTimers.delete(sessionName);
+      spawn('tmux', [
+        'resize-pane',
+        '-t',
+        sessionName,
+        '-x',
+        String(cols),
+        '-y',
+        String(rows),
+      ]);
+    }, RESIZE_DEBOUNCE_MS);
+    this.resizeTimers.set(sessionName, timer);
+  }
+
+  private clearResizeTimer(sessionName: string): void {
+    const timer = this.resizeTimers.get(sessionName);
+    if (timer) {
+      clearTimeout(timer);
+      this.resizeTimers.delete(sessionName);
+    }
+  }
+
+  sendOutput(ws: WebSocket, sessionId: string, data: string): void {
     if (ws.readyState === ws.OPEN) {
-      const msg: OutputMessage = { type: 'output', data };
+      const msg: TerminalOutputMessage = { type: 'terminal:output', sessionId, data };
       ws.send(JSON.stringify(msg));
     }
   }
 
-  sendExit(ws: WebSocket, code: number): void {
+  sendExit(ws: WebSocket, sessionId: string, code: number): void {
     if (ws.readyState === ws.OPEN) {
-      const msg: ExitMessage = { type: 'exit', code };
+      const msg: TerminalExitMessage = { type: 'terminal:exit', sessionId, exitCode: code, signal: null };
       ws.send(JSON.stringify(msg));
     }
   }
 
-  sendError(ws: WebSocket, message: string): void {
+  sendError(ws: WebSocket, sessionId: string, error: string): void {
     if (ws.readyState === ws.OPEN) {
-      const msg: ErrorMessage = { type: 'error', message };
+      const msg: TerminalErrorMessage = { type: 'terminal:error', sessionId, error };
       ws.send(JSON.stringify(msg));
     }
   }
 
   killSession(sessionName: string): void {
-    const process = this.processes.get(sessionName);
-    if (process) {
-      process.kill();
+    this.clearResizeTimer(sessionName);
+    const proc = this.processes.get(sessionName);
+    if (proc) {
+      proc.kill();
       this.processes.delete(sessionName);
     }
   }
@@ -177,12 +188,16 @@ export function validateClientMessage(data: unknown): data is ClientMessage {
 
   const obj = data as Record<string, unknown>;
 
-  if (obj.type === 'input') {
-    return typeof obj.data === 'string';
+  if (obj.type === 'terminal:input') {
+    return typeof obj.sessionId === 'string' && typeof obj.data === 'string';
   }
 
-  if (obj.type === 'resize') {
-    return typeof obj.cols === 'number' && typeof obj.rows === 'number';
+  if (obj.type === 'terminal:resize') {
+    return (
+      typeof obj.sessionId === 'string' &&
+      typeof obj.cols === 'number' &&
+      typeof obj.rows === 'number'
+    );
   }
 
   return false;
