@@ -9,6 +9,7 @@ import { useUiStore } from '../../stores/ui-store.js';
 import { useAgentStore } from '../../stores/agent-store.js';
 import { StatusDot } from '../ui/status-dot.js';
 import { LiveTimer } from '../ui/live-timer.js';
+import { ConfirmDialog } from '../ui/confirm-dialog.js';
 import { cn } from '../../lib/cn.js';
 
 interface AgentCardProps {
@@ -80,6 +81,7 @@ export function AgentCard({ agent }: AgentCardProps) {
 
   const [isRestarting, setIsRestarting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
 
   const handleRestart = useCallback(async () => {
     closeContextMenu();
@@ -94,10 +96,13 @@ export function AgentCard({ agent }: AgentCardProps) {
     }
   }, [closeContextMenu, agent.id, agent.name]);
 
-  const handleDelete = useCallback(async () => {
+  const handleDeleteClick = useCallback(() => {
     closeContextMenu();
-    const confirmed = window.confirm(`Are you sure you want to delete "${agent.name}"?`);
-    if (!confirmed) return;
+    setDeleteConfirmOpen(true);
+  }, [closeContextMenu]);
+
+  const handleDeleteConfirm = useCallback(async () => {
+    setDeleteConfirmOpen(false);
     setIsDeleting(true);
     try {
       await useAgentStore.getState().deleteAgent(agent.id);
@@ -107,7 +112,11 @@ export function AgentCard({ agent }: AgentCardProps) {
     } finally {
       setIsDeleting(false);
     }
-  }, [closeContextMenu, agent.id, agent.name]);
+  }, [agent.id, agent.name]);
+
+  const handleDeleteCancel = useCallback(() => {
+    setDeleteConfirmOpen(false);
+  }, []);
 
   return (
     <motion.div
@@ -200,7 +209,7 @@ export function AgentCard({ agent }: AgentCardProps) {
           <button
             type="button"
             className="flex w-full items-center gap-2 px-3 py-2 text-sm text-destructive hover:bg-surface-hover cursor-pointer disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-            onClick={handleDelete}
+            onClick={handleDeleteClick}
             disabled={isDeleting}
           >
             <Trash2 className="h-3.5 w-3.5" />
@@ -208,6 +217,16 @@ export function AgentCard({ agent }: AgentCardProps) {
           </button>
         </div>
       )}
+
+      <ConfirmDialog
+        open={deleteConfirmOpen}
+        title="Delete Agent"
+        message={`Are you sure you want to delete "${agent.name}"? This action cannot be undone.`}
+        confirmLabel="Delete"
+        destructive
+        onConfirm={handleDeleteConfirm}
+        onCancel={handleDeleteCancel}
+      />
     </motion.div>
   );
 }

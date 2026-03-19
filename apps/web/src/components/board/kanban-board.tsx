@@ -10,15 +10,27 @@ import {
   type DragStartEvent,
   type DragEndEvent,
 } from '@dnd-kit/core';
+import { arrayMove } from '@dnd-kit/sortable';
 import { Bot } from 'lucide-react';
+import { toast } from 'sonner';
+import { SWIMLANE_STATUS_MAP } from '@command-center/shared';
+import type { AgentResponse } from '@command-center/shared';
 import { useBoardStore } from '../../stores/board-store.js';
 import { useAgentStore } from '../../stores/agent-store.js';
 import { useUiStore } from '../../stores/ui-store.js';
 import { Swimlane } from './swimlane.js';
 import { DragOverlayCard } from './drag-overlay.js';
 import { EmptyState } from '../ui/empty-state.js';
-import type { AgentResponse } from '@command-center/shared';
 import { ApiError } from '../../lib/api-client.js';
+
+type SwimlaneSlug = keyof typeof SWIMLANE_STATUS_MAP;
+
+const LANE_TOAST_MESSAGES: Record<string, string> = {
+  'not-started': 'Agent stopped – moved to Not Started',
+  'in-progress': 'Agent started – moved to In Progress',
+  'review': 'Agent paused – moved to Review',
+  'done': 'Agent stopped – moved to Done',
+};
 
 const openCreateAgentDialog = () => useUiStore.getState().openCreateAgentDialog();
 
@@ -87,25 +99,68 @@ export function KanbanBoard() {
 
       const originalSwimlaneId = agent.swimlaneId;
       const originalPosition = agent.position;
-
       const overId = over.id as string;
-      const targetLane = swimlanes.find((l) => l.id === overId);
-      if (!targetLane || targetLane.id === originalSwimlaneId) return;
+
+      let targetLane = swimlanes.find((l) => l.id === overId);
+      const overAgent = !targetLane ? agents.get(overId) : undefined;
+      if (!targetLane && overAgent) {
+        targetLane = swimlanes.find((l) => l.id === overAgent.swimlaneId);
+      }
+      if (!targetLane) return;
 
       const laneAgents = Array.from(agents.values())
         .filter((a) => a.swimlaneId === targetLane.id)
         .sort((a, b) => a.position - b.position);
-      const newPosition = laneAgents.length;
 
-      optimisticMove(agentId, targetLane.id, newPosition);
+      // Within-lane reorder
+      if (targetLane.id === originalSwimlaneId) {
+        if (!overAgent || overAgent.id === agentId) return;
+
+        const oldIndex = laneAgents.findIndex((a) => a.id === agentId);
+        const newIndex = laneAgents.findIndex((a) => a.id === overAgent.id);
+        if (oldIndex === -1 || newIndex === -1 || oldIndex === newIndex) return;
+
+        const reordered = arrayMove(laneAgents, oldIndex, newIndex);
+        reordered.forEach((a, idx) => {
+          optimisticMove(a.id, targetLane.id, idx);
+        });
+
+        try {
+          await commitMove(agentId, targetLane.id, newIndex);
+        } catch {
+          laneAgents.forEach((a) => {
+            rollbackMove(a.id, originalSwimlaneId, a.position);
+          });
+        }
+        return;
+      }
+
+      // Cross-lane move
+      const dropIndex = overAgent
+        ? laneAgents.findIndex((a) => a.id === overAgent.id)
+        : laneAgents.length;
+      const finalPosition = dropIndex === -1 ? laneAgents.length : dropIndex;
+
+      const slug = targetLane.slug as SwimlaneSlug;
+      const newStatus = SWIMLANE_STATUS_MAP[slug];
+
+      optimisticMove(agentId, targetLane.id, finalPosition);
 
       try {
-        await commitMove(agentId, targetLane.id, newPosition);
+        await commitMove(agentId, targetLane.id, finalPosition);
+
+        if (newStatus) {
+          toast.success(LANE_TOAST_MESSAGES[slug] ?? `Agent moved to ${targetLane.name}`);
+        }
+
+        if (boardId) {
+          useAgentStore.getState().fetchAgents(boardId).catch(() => {});
+        }
       } catch {
         rollbackMove(agentId, originalSwimlaneId, originalPosition);
       }
     },
-    [agents, swimlanes, optimisticMove, commitMove, rollbackMove],
+    [agents, swimlanes, optimisticMove, commitMove, rollbackMove, boardId],
   );
 
   const sortedLanes = [...swimlanes].sort((a, b) => a.position - b.position);

@@ -19,6 +19,7 @@ export function AgentCreateDialog({ open, onClose, boardId, swimlaneId }: AgentC
   const [model, setModel] = useState('');
   const [workingDir, setWorkingDir] = useState('');
   const [command, setCommand] = useState('');
+  const [envVarsText, setEnvVarsText] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const nameInputRef = useRef<HTMLInputElement>(null);
@@ -29,6 +30,7 @@ export function AgentCreateDialog({ open, onClose, boardId, swimlaneId }: AgentC
       setModel('');
       setWorkingDir('');
       setCommand('');
+      setEnvVarsText('');
       setError(null);
       setLoading(false);
       requestAnimationFrame(() => {
@@ -71,6 +73,18 @@ export function AgentCreateDialog({ open, onClose, boardId, swimlaneId }: AgentC
       setLoading(true);
       setError(null);
 
+      const envVars: Record<string, string> = {};
+      if (envVarsText.trim()) {
+        for (const line of envVarsText.split('\n')) {
+          const trimmed = line.trim();
+          if (!trimmed) continue;
+          const eqIdx = trimmed.indexOf('=');
+          if (eqIdx > 0) {
+            envVars[trimmed.slice(0, eqIdx).trim()] = trimmed.slice(eqIdx + 1).trim();
+          }
+        }
+      }
+
       try {
         await createAgent({
           name: name.trim(),
@@ -79,6 +93,7 @@ export function AgentCreateDialog({ open, onClose, boardId, swimlaneId }: AgentC
           ...(model.trim() && { model: model.trim() }),
           ...(workingDir.trim() && { workingDir: workingDir.trim() }),
           ...(command.trim() && { command: command.trim() }),
+          ...(Object.keys(envVars).length > 0 && { envVars }),
         });
         onClose();
       } catch (err) {
@@ -87,7 +102,7 @@ export function AgentCreateDialog({ open, onClose, boardId, swimlaneId }: AgentC
         setLoading(false);
       }
     },
-    [name, model, workingDir, command, boardId, swimlaneId, createAgent, onClose],
+    [name, model, workingDir, command, envVarsText, boardId, swimlaneId, createAgent, onClose],
   );
 
   if (!open) return null;
@@ -176,6 +191,20 @@ export function AgentCreateDialog({ open, onClose, boardId, swimlaneId }: AgentC
                 onChange={(e) => setCommand(e.target.value)}
                 className={inputClasses}
                 placeholder="npm run dev"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="agent-env-vars" className="mb-1.5 block text-sm font-medium text-text-secondary">
+                Environment Variables
+              </label>
+              <textarea
+                id="agent-env-vars"
+                value={envVarsText}
+                onChange={(e) => setEnvVarsText(e.target.value)}
+                className={cn(inputClasses, 'min-h-[80px] resize-y')}
+                placeholder="KEY=VALUE (one per line)"
+                rows={3}
               />
             </div>
 

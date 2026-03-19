@@ -37,8 +37,8 @@ vi.mock('../../stores/board-store.js', () => ({
     }),
 }));
 
-vi.mock('../../stores/agent-store.js', () => ({
-  useAgentStore: (selector: (s: Record<string, unknown>) => unknown) =>
+vi.mock('../../stores/agent-store.js', () => {
+  const storeMock = (selector: (s: Record<string, unknown>) => unknown) =>
     selector({
       agents: mockAgents.value,
       logs: mockLogs.value,
@@ -47,8 +47,13 @@ vi.mock('../../stores/agent-store.js', () => ({
       optimisticMove: mockOptimisticMove,
       rollbackMove: mockRollbackMove,
       commitMove: mockCommitMove,
-    }),
-}));
+    });
+  storeMock.getState = () => ({
+    fetchAgents: mockFetchAgents,
+    optimisticMove: mockOptimisticMove,
+  });
+  return { useAgentStore: storeMock };
+});
 
 vi.mock('../../stores/ui-store.js', () => ({
   useUiStore: (selector: (s: Record<string, unknown>) => unknown) =>

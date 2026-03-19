@@ -7,9 +7,11 @@ import { AgentCard } from './agent-card.js';
 const mockOpenDetailPanel = vi.fn();
 const mockOpenTerminalPanel = vi.fn();
 
-const { mockSelectedAgentId, mockAgentLogs } = vi.hoisted(() => ({
+const { mockSelectedAgentId, mockAgentLogs, mockDeleteAgent, mockRestartAgent } = vi.hoisted(() => ({
   mockSelectedAgentId: { value: null as string | null },
   mockAgentLogs: { value: new Map<string, LogResponse[]>() },
+  mockDeleteAgent: vi.fn().mockResolvedValue(undefined),
+  mockRestartAgent: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock('../../stores/ui-store.js', () => ({
@@ -21,12 +23,17 @@ vi.mock('../../stores/ui-store.js', () => ({
     }),
 }));
 
-vi.mock('../../stores/agent-store.js', () => ({
-  useAgentStore: (selector: (s: Record<string, unknown>) => unknown) =>
+vi.mock('../../stores/agent-store.js', () => {
+  const storeMock = (selector: (s: Record<string, unknown>) => unknown) =>
     selector({
       logs: mockAgentLogs.value,
-    }),
-}));
+    });
+  storeMock.getState = () => ({
+    restartAgent: mockRestartAgent,
+    deleteAgent: mockDeleteAgent,
+  });
+  return { useAgentStore: storeMock };
+});
 
 function makeAgent(overrides: Partial<AgentResponse> = {}): AgentResponse {
   return {
@@ -203,6 +210,48 @@ describe('AgentCard', () => {
     render(<AgentCard agent={makeAgent({ status: 'running', startedAt: null })} />);
 
     expect(screen.queryByTestId('live-timer')).not.toBeInTheDocument();
+  });
+
+  describe('delete confirmation dialog', () => {
+    it('opens confirm dialog when Delete is clicked in context menu', async () => {
+      const { user } = render(<AgentCard agent={makeAgent({ id: 'agent-1', name: 'Test Agent' })} />);
+
+      const card = screen.getByTestId('agent-card-agent-1');
+      fireEvent.contextMenu(card);
+
+      await user.click(screen.getByText('Delete'));
+
+      expect(screen.getByTestId('confirm-dialog')).toBeInTheDocument();
+      expect(screen.getByText('Delete Agent')).toBeInTheDocument();
+      expect(screen.getByText(/Are you sure you want to delete "Test Agent"/)).toBeInTheDocument();
+    });
+
+    it('calls deleteAgent when confirm is clicked', async () => {
+      const { user } = render(<AgentCard agent={makeAgent({ id: 'agent-1', name: 'Test Agent' })} />);
+
+      const card = screen.getByTestId('agent-card-agent-1');
+      fireEvent.contextMenu(card);
+      await user.click(screen.getByText('Delete'));
+
+      await user.click(screen.getByRole('button', { name: 'Delete' }));
+
+      expect(mockDeleteAgent).toHaveBeenCalledWith('agent-1');
+    });
+
+    it('closes confirm dialog when cancel is clicked', async () => {
+      const { user } = render(<AgentCard agent={makeAgent({ id: 'agent-1', name: 'Test Agent' })} />);
+
+      const card = screen.getByTestId('agent-card-agent-1');
+      fireEvent.contextMenu(card);
+      await user.click(screen.getByText('Delete'));
+
+      expect(screen.getByTestId('confirm-dialog')).toBeInTheDocument();
+
+      await user.click(screen.getByRole('button', { name: 'Cancel' }));
+
+      expect(screen.queryByTestId('confirm-dialog')).not.toBeInTheDocument();
+      expect(mockDeleteAgent).not.toHaveBeenCalled();
+    });
   });
 
   describe('log preview', () => {
