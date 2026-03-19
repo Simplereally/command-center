@@ -18,6 +18,7 @@ This is a pnpm monorepo (`pnpm@9.15.4`, Node >= 22). Key apps live under `apps/`
 - The `AgentLogViewer` component accepts `maxLines` (default 500) and uses the `useLogStream` hook for SSE streaming. It only renders in `AgentDetail` when agent status is `running` or `error`.
 
 - **Gotcha: dirty working tree from prior sessions** — Previous agent sessions may leave uncommitted modifications or untracked files in the working directory. Before making changes, run `git diff --name-only HEAD` and `git status` to identify stale files, then `git checkout HEAD -- <file>` any files you did not intend to modify. Leftover dirty files can cause subtle test failures (e.g., mock hoisting issues in vitest).
+- **Gotcha: `useAgentStore.getState()` in tests** — Some components (e.g., `agent-card.tsx`, `kanban-board.tsx`) call `useAgentStore.getState()` for imperative actions (`deleteAgent`, `restartAgent`, `fetchAgents`, `optimisticMove`). When mocking `useAgentStore` in tests, the mock must also expose a `getState()` method returning those functions, not just a selector function. Pattern: `storeMock.getState = () => ({ deleteAgent: mockFn, ... }); return { useAgentStore: storeMock };`.
 
 ### API (`apps/api`)
 
