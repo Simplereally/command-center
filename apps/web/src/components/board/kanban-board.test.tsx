@@ -2,10 +2,13 @@ import type { SwimlaneResponse, AgentResponse } from '@command-center/shared';
 import { customRender as render, screen } from '../../test/render.js';
 import { KanbanBoard } from './kanban-board.js';
 
-const mockFetchBoard = vi.fn();
-const mockFetchSwimlanes = vi.fn();
-const mockFetchAgents = vi.fn();
-const mockFetchLatestLogs = vi.fn();
+const mockFetchBoard = vi.fn().mockResolvedValue(undefined);
+const mockFetchSwimlanes = vi.fn().mockResolvedValue(undefined);
+const mockFetchAgents = vi.fn().mockResolvedValue(undefined);
+const mockFetchLatestLogs = vi.fn().mockResolvedValue(undefined);
+const mockOptimisticMove = vi.fn();
+const mockRollbackMove = vi.fn();
+const mockCommitMove = vi.fn().mockResolvedValue(undefined);
 
 const { mockSwimlanes, mockAgents, mockLoading, mockCollapsedLanes, mockLogs } = vi.hoisted(() => ({
   mockSwimlanes: { value: [] as SwimlaneResponse[] },
@@ -28,6 +31,7 @@ vi.mock('../../stores/board-store.js', () => ({
     selector({
       swimlanes: mockSwimlanes.value,
       loading: mockLoading.value,
+      error: null,
       fetchSwimlanes: mockFetchSwimlanes,
       fetchBoard: mockFetchBoard,
     }),
@@ -40,6 +44,9 @@ vi.mock('../../stores/agent-store.js', () => ({
       logs: mockLogs.value,
       fetchAgents: mockFetchAgents,
       fetchLatestLogs: mockFetchLatestLogs,
+      optimisticMove: mockOptimisticMove,
+      rollbackMove: mockRollbackMove,
+      commitMove: mockCommitMove,
     }),
 }));
 

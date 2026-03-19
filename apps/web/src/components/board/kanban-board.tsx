@@ -10,7 +10,7 @@ import {
   type DragStartEvent,
   type DragEndEvent,
 } from '@dnd-kit/core';
-import { AlertTriangle, Bot } from 'lucide-react';
+import { Bot } from 'lucide-react';
 import { useBoardStore } from '../../stores/board-store.js';
 import { useAgentStore } from '../../stores/agent-store.js';
 import { useUiStore } from '../../stores/ui-store.js';
@@ -27,7 +27,6 @@ export function KanbanBoard() {
   const { boardId } = useParams<{ boardId: string }>();
   const swimlanes = useBoardStore((s) => s.swimlanes);
   const loading = useBoardStore((s) => s.loading);
-  const boardError = useBoardStore((s) => s.error);
   const fetchSwimlanes = useBoardStore((s) => s.fetchSwimlanes);
   const fetchBoard = useBoardStore((s) => s.fetchBoard);
   const agents = useAgentStore((s) => s.agents);
@@ -57,14 +56,6 @@ export function KanbanBoard() {
       fetchAgents(boardId);
     }
   }, [boardId, fetchBoard, fetchSwimlanes, fetchAgents, navigate]);
-
-  useEffect(() => {
-    if (boardId) {
-      fetchBoard(boardId);
-      fetchSwimlanes(boardId);
-      fetchAgents(boardId);
-    }
-  }, [boardId, fetchBoard, fetchSwimlanes, fetchAgents]);
 
   useEffect(() => {
     const runningAgents = Array.from(agents.values()).filter(

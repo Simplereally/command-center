@@ -1,0 +1,12 @@
+{
+  "apiKeyHelper": "echo $CLAUDE_API_KEY",
+  "permissions": {
+    "allow": [
+      "Bash(npm:*)",
+      "Bash(pnpm:*)",
+      "Bash(node:*)",
+      "Bash(tsx:*)",
+      "Bash(npx:*)"
+    ]
+  }
+}

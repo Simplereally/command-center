@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router';
+import { BrowserRouter, Routes, Route, useNavigate } from 'react-router';
 import { useEffect } from 'react';
 import { Toaster } from 'sonner';
 import { BoardPage } from './routes/board';
