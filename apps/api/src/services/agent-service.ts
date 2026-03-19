@@ -171,8 +171,18 @@ export async function startAgent(id: string) {
   if (agent.command) {
     sessionName = `cc-agent-${id}`.slice(0, 128);
     try {
-      await tmuxClient.createSession(sessionName);
-      await tmuxClient.sendKeys(sessionName, agent.command + '\n');
+      const createOpts: { startDir?: string } = {};
+      if (agent.workingDir) {
+        createOpts.startDir = agent.workingDir;
+      }
+      await tmuxClient.createSession(sessionName, undefined, createOpts);
+
+      const envVars = (agent.envVars ?? {}) as Record<string, string>;
+      for (const [key, value] of Object.entries(envVars)) {
+        await tmuxClient.sendKeys(sessionName, `export ${key}=${JSON.stringify(value)}`);
+      }
+
+      await tmuxClient.sendKeys(sessionName, agent.command);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       const [errored] = await db
