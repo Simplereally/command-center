@@ -4,6 +4,7 @@ import { Blocks, Plus, Settings } from 'lucide-react';
 import { useBoardStore } from '../../stores/board-store.js';
 import { useUiStore } from '../../stores/ui-store.js';
 import { AgentCreateDialog } from '../agent/agent-create-dialog.js';
+import { ViewModeToggle } from './view-mode-toggle.js';
 import { cn } from '../../lib/cn.js';
 
 export function TopBar() {
@@ -31,15 +32,16 @@ export function TopBar() {
         {/* Left: App title */}
         <div className="flex items-center gap-2">
           <Blocks className="h-5 w-5 text-accent" />
-          <span className="text-sm font-semibold text-text-primary">Command Center</span>
+          <span className="text-lg font-bold text-text-primary">Command Center</span>
         </div>
 
-        {/* Center: Board selector */}
-        <div className="flex items-center">
+        {/* Center: Board selector + View mode toggle */}
+        <div className="flex items-center gap-3">
           <select
             className={cn(
               'rounded-md border border-border bg-surface px-3 py-1 text-sm text-text-primary',
               'hover:border-border-strong focus:border-accent focus:outline-none',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background',
             )}
             value={currentBoard?.id ?? ''}
             onChange={(e) => {
@@ -57,6 +59,7 @@ export function TopBar() {
               </option>
             ))}
           </select>
+          <ViewModeToggle />
         </div>
 
         {/* Right: Actions */}
@@ -67,6 +70,7 @@ export function TopBar() {
             className={cn(
               'flex items-center gap-1.5 rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-white',
               'hover:bg-accent-hover transition-colors',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background',
             )}
           >
             <Plus className="h-4 w-4" />
@@ -77,6 +81,7 @@ export function TopBar() {
             className={cn(
               'rounded-md p-1.5 text-text-secondary',
               'hover:bg-surface-hover hover:text-text-primary transition-colors',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background',
             )}
             aria-label="Settings"
           >
