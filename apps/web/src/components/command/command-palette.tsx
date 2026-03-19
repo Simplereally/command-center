@@ -70,7 +70,7 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
           <Command.Input
             data-testid="command-palette-input"
             placeholder="Type a command..."
-            className="w-full bg-transparent px-4 py-3 text-sm text-text-primary placeholder:text-text-tertiary focus:outline-none border-b border-border"
+            className="w-full bg-transparent px-4 py-3 text-sm text-text-primary placeholder:text-text-tertiary focus:outline-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent border-b border-border"
           />
           <Command.List data-testid="command-palette-list">
             <Command.Empty

@@ -47,6 +47,7 @@ export function TerminalTabs({
             onClick={() => onTabSelect(tab.id)}
             className={cn(
               'group flex h-8 min-w-[120px] max-w-[200px] items-center gap-2 rounded-t-md px-3 text-sm transition-colors',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
               tab.id === activeTabId
                 ? 'border-b-2 border-accent bg-surface-hover text-text-primary'
                 : 'text-text-secondary hover:bg-surface-hover hover:text-text-primary',
@@ -78,7 +79,7 @@ export function TerminalTabs({
       <button
         type="button"
         onClick={onNewTab}
-        className="flex h-7 w-7 items-center justify-center rounded-md text-text-tertiary transition-colors hover:bg-surface-hover hover:text-text-primary"
+        className="flex h-7 w-7 items-center justify-center rounded-md text-text-tertiary transition-colors hover:bg-surface-hover hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
         aria-label="New terminal"
         data-testid="terminal-new-tab"
       >

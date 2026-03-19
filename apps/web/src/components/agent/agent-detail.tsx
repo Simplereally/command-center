@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { useAgentStore } from '../../stores/agent-store.js';
 import { useUiStore } from '../../stores/ui-store.js';
 import { AgentStatusBadge } from './agent-status-badge.js';
+import { AgentLogViewer } from './agent-log-viewer.js';
 import { ErrorBoundary } from '../error-boundary/index.js';
 
 interface AgentDetailProps {
@@ -112,7 +113,7 @@ export function AgentDetail({ agent }: AgentDetailProps) {
           {canStart && (
             <button
               onClick={handleStart}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-accent px-3 py-1.5 text-sm text-white hover:bg-accent-hover"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-accent px-3 py-1.5 text-sm text-white hover:bg-accent-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             >
               <Play className="h-3.5 w-3.5" />
               Start
@@ -121,7 +122,7 @@ export function AgentDetail({ agent }: AgentDetailProps) {
           {canStop && (
             <button
               onClick={handleStop}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface px-3 py-1.5 text-sm text-text-primary hover:bg-surface-hover"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface px-3 py-1.5 text-sm text-text-primary hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             >
               <Square className="h-3.5 w-3.5" />
               Stop
@@ -130,7 +131,7 @@ export function AgentDetail({ agent }: AgentDetailProps) {
           {canRestart && (
             <button
               onClick={handleRestart}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface px-3 py-1.5 text-sm text-text-primary hover:bg-surface-hover"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface px-3 py-1.5 text-sm text-text-primary hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             >
               <RotateCcw className="h-3.5 w-3.5" />
               Restart
@@ -138,7 +139,7 @@ export function AgentDetail({ agent }: AgentDetailProps) {
           )}
           <button
             onClick={() => openTerminalPanel(agent.id)}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface px-3 py-1.5 text-sm text-text-primary hover:bg-surface-hover"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface px-3 py-1.5 text-sm text-text-primary hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background"
           >
             <Terminal className="h-3.5 w-3.5" />
             Terminal
@@ -157,6 +158,13 @@ export function AgentDetail({ agent }: AgentDetailProps) {
                 </li>
               ))}
             </ul>
+          </div>
+        )}
+
+        {(agent.status === 'running' || agent.status === 'error') && (
+          <div>
+            <h3 className="text-sm font-medium text-text-secondary mb-2">Logs</h3>
+            <AgentLogViewer agentId={agent.id} maxLines={500} maxHeight="320px" />
           </div>
         )}
       </div>

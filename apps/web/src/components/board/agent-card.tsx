@@ -22,7 +22,7 @@ export function AgentCard({ agent }: AgentCardProps) {
   const isSelected = selectedAgentId === agent.id;
   const agentLogs = useAgentStore((s) => s.logs.get(agent.id));
   const lastLogLine =
-    agentLogs && agentLogs.length > 0 ? agentLogs[agentLogs.length - 1]?.message : undefined;
+    agentLogs && agentLogs.length > 0 ? agentLogs[agentLogs.length - 1]?.content : undefined;
   const showLogLine =
     lastLogLine != null && (agent.status === 'running' || agent.status === 'error');
   const prefersReducedMotion = useReducedMotion();

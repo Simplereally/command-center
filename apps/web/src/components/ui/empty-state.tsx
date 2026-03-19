@@ -36,7 +36,7 @@ export function EmptyState({ icon, title, description, action, className }: Empt
         <button
           type="button"
           onClick={action.onClick}
-          className="bg-accent hover:bg-accent-hover text-white rounded-lg px-4 py-2 text-sm font-medium"
+          className="bg-accent hover:bg-accent-hover text-white rounded-lg px-4 py-2 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background"
         >
           {action.label}
         </button>

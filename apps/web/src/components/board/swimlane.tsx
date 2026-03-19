@@ -36,7 +36,7 @@ export function Swimlane({ lane, agents, isCollapsed }: SwimlaneProps) {
           ) : (
             <ChevronDown className="h-3.5 w-3.5 text-text-tertiary" />
           )}
-          <span className="text-xs font-semibold uppercase tracking-wide text-text-secondary">
+          <span className="text-[13px] font-semibold uppercase tracking-wide text-text-secondary">
             {lane.name}
           </span>
         </div>

@@ -80,7 +80,7 @@ export function KeyboardHelp({ open, onClose }: KeyboardHelpProps) {
             type="button"
             data-testid="keyboard-help-close"
             onClick={onClose}
-            className="text-text-tertiary hover:text-text-primary transition-colors"
+            className="text-text-tertiary hover:text-text-primary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent rounded-md"
             aria-label="Close"
           >
             <X className="w-5 h-5" />
