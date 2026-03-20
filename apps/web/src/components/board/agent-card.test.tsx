@@ -94,10 +94,10 @@ describe('AgentCard', () => {
   });
 
   it('shows model badge when present', () => {
-    render(<AgentCard agent={makeAgent({ model: 'gpt-4o' })} />);
+    render(<AgentCard agent={makeAgent({ model: 'claude-sonnet-4-20250514' })} />);
 
     expect(screen.getByTestId('provider-badge')).toBeInTheDocument();
-    expect(screen.getByText('GPT-4o')).toBeInTheDocument();
+    expect(screen.getByText('Claude Sonnet 4')).toBeInTheDocument();
   });
 
   it('does not show model badge when null', () => {

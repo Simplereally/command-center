@@ -1,4 +1,4 @@
-import { Terminal, Code, GitBranch, Settings, type LucideIcon } from 'lucide-react';
+import { Terminal, Code, GitBranch, Settings, Braces, Sparkles, Zap, Cloud, type LucideIcon } from 'lucide-react';
 import { getProviderForModel } from '@command-center/shared';
 import { cn } from '../../lib/cn.js';
 
@@ -7,6 +7,10 @@ const ICON_MAP: Record<string, LucideIcon> = {
   Code,
   GitBranch,
   Settings,
+  Braces,
+  Sparkles,
+  Zap,
+  Cloud,
 };
 
 interface ProviderBadgeProps {

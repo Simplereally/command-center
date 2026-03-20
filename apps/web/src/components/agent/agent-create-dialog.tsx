@@ -13,6 +13,10 @@ import {
   Code,
   GitBranch,
   Settings,
+  Braces,
+  Sparkles,
+  Zap,
+  Cloud,
   ExternalLink,
   ChevronDown,
   Loader2,
@@ -39,6 +43,10 @@ const ICON_MAP: Record<string, LucideIcon> = {
   Code,
   GitBranch,
   Settings,
+  Braces,
+  Sparkles,
+  Zap,
+  Cloud,
 };
 
 const inputClasses =

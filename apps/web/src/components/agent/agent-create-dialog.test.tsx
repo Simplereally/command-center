@@ -83,8 +83,12 @@ describe('AgentCreateDialog', () => {
 
       expect(screen.getByTestId('provider-grid')).toBeInTheDocument();
       expect(screen.getByTestId('provider-card-claude-code')).toBeInTheDocument();
+      expect(screen.getByTestId('provider-card-codex-cli')).toBeInTheDocument();
+      expect(screen.getByTestId('provider-card-gemini-cli')).toBeInTheDocument();
       expect(screen.getByTestId('provider-card-opencode')).toBeInTheDocument();
       expect(screen.getByTestId('provider-card-aider')).toBeInTheDocument();
+      expect(screen.getByTestId('provider-card-copilot-cli')).toBeInTheDocument();
+      expect(screen.getByTestId('provider-card-amazon-q')).toBeInTheDocument();
       expect(screen.getByTestId('provider-card-custom')).toBeInTheDocument();
     });
 
@@ -92,8 +96,12 @@ describe('AgentCreateDialog', () => {
       render(<AgentCreateDialog {...defaultProps} />);
 
       expect(screen.getByText('Claude Code')).toBeInTheDocument();
+      expect(screen.getByText('Codex CLI')).toBeInTheDocument();
+      expect(screen.getByText('Gemini CLI')).toBeInTheDocument();
       expect(screen.getByText('OpenCode')).toBeInTheDocument();
       expect(screen.getByText('Aider')).toBeInTheDocument();
+      expect(screen.getByText('Copilot CLI')).toBeInTheDocument();
+      expect(screen.getByText('Amazon Q')).toBeInTheDocument();
       expect(screen.getByText('Custom')).toBeInTheDocument();
     });
 
@@ -139,7 +147,7 @@ describe('AgentCreateDialog', () => {
       await goToStep2('claude-code');
 
       const commandInput = screen.getByLabelText(/^command$/i) as HTMLInputElement;
-      expect(commandInput.value).toBe('claude --print');
+      expect(commandInput.value).toBe('claude');
     });
 
     it('shows model dropdown for providers with models', async () => {
@@ -203,7 +211,7 @@ describe('AgentCreateDialog', () => {
             boardId: 'board-1',
             swimlaneId: 'lane-not-started',
             model: 'claude-sonnet-4-20250514',
-            command: 'claude --print',
+            command: 'claude',
           }),
         );
       });
