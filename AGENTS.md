@@ -26,5 +26,5 @@
 - Web: `pnpm dev:web` (port 5173) — Vite proxies `/api` to `http://localhost:4000`
 - Both: `pnpm dev` (runs both in parallel)
 - `tmux` must be installed on the system (used for terminal sessions)
-- Pre-existing lint errors in `provider-badge.tsx` (unused vars) and `test/render.tsx` (react-refresh warning) are known and not caused by terminal changes
 - The Vite config proxies `/api` requests to the API server, so the frontend only needs the relative `/api/v1` prefix for REST calls; WebSocket URLs use `WS_BASE_URL` from constants
+- When adding new exports to `@command-center/shared`, vitest may cache stale module resolution. If tests fail with "undefined" imports from shared, clear vitest caches: `rm -rf apps/web/node_modules/.vite`
