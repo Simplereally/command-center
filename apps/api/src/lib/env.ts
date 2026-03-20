@@ -4,6 +4,7 @@ const envSchema = z.object({
   PORT: z.coerce.number().int().positive().default(4000),
   DATABASE_URL: z.string().default("./data/command-center.db"),
   LOG_LEVEL: z.enum(["debug", "info", "warn", "error"]).default("debug"),
+  CORS_ORIGINS: z.string().optional(),
 });
 
 function loadEnv(): z.infer<typeof envSchema> {

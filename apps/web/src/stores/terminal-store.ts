@@ -6,10 +6,10 @@ import type {
   TerminalInputMessage,
   TerminalResizeMessage,
 } from '@command-center/shared';
+import { WS_BASE_URL } from '../lib/constants.js';
 
 export type ConnectionStatus = 'connected' | 'reconnecting' | 'error' | 'disconnected';
 
-const WS_BASE_URL = 'ws://localhost:4000';
 const WS_TERMINAL_PATH = '/api/v1/tmux/sessions';
 const RECONNECT_INITIAL_DELAY_MS = 1000;
 const RECONNECT_MAX_DELAY_MS = 30000;
@@ -95,9 +95,7 @@ export const useTerminalStore = create<TerminalState>()(
       }
     };
 
-    const reconnectFn = (sessionName: string): void => {
-      if (!get().terminals.has(sessionName)) return;
-
+    const createWebSocket = (sessionName: string): WebSocket => {
       const url = `${WS_BASE_URL}${WS_TERMINAL_PATH}/${sessionName}/terminal`;
       const ws = new WebSocket(url);
 
@@ -160,6 +158,14 @@ export const useTerminalStore = create<TerminalState>()(
         }
       };
 
+      return ws;
+    };
+
+    const reconnectFn = (sessionName: string): void => {
+      if (!get().terminals.has(sessionName)) return;
+
+      const ws = createWebSocket(sessionName);
+
       set((state) => {
         const term = state.terminals.get(sessionName);
         if (!term) return;
@@ -183,67 +189,7 @@ export const useTerminalStore = create<TerminalState>()(
           onStatusChange?: (status: ConnectionStatus, error?: string) => void;
         },
       ) => {
-        const url = `${WS_BASE_URL}${WS_TERMINAL_PATH}/${sessionName}/terminal`;
-        const ws = new WebSocket(url);
-
-        ws.onopen = () => {
-          set((state) => {
-            const term = state.terminals.get(sessionName);
-            if (term) {
-              term.status = 'connected';
-              term.lastError = null;
-              term.reconnectAttempts = 0;
-              term.onStatusChange?.('connected');
-            }
-          });
-        };
-
-        ws.onmessage = (event: MessageEvent) => {
-          handleMessage(sessionName, event);
-        };
-
-        ws.onerror = () => {
-          set((state) => {
-            const term = state.terminals.get(sessionName);
-            if (term) {
-              term.lastError = 'WebSocket connection error';
-              term.onStatusChange?.('error', term.lastError);
-            }
-          });
-        };
-
-        ws.onclose = (event: CloseEvent) => {
-          const currentTerminal = get().terminals.get(sessionName);
-          if (!currentTerminal) return;
-
-          if (event.wasClean) {
-            set((state) => {
-              const term = state.terminals.get(sessionName);
-              if (term) {
-                term.status = 'disconnected';
-                term.onStatusChange?.('disconnected');
-              }
-            });
-            return;
-          }
-
-          if (currentTerminal.status !== 'disconnected') {
-            set((state) => {
-              const term = state.terminals.get(sessionName);
-              if (term) {
-                term.status = 'reconnecting';
-              }
-            });
-
-            const delay = getReconnectDelay(get().terminals.get(sessionName)?.reconnectAttempts ?? 0);
-            setTimeout(() => {
-              const term = get().terminals.get(sessionName);
-              if (term && term.status === 'reconnecting') {
-                reconnectFn(sessionName);
-              }
-            }, delay);
-          }
-        };
+        const ws = createWebSocket(sessionName);
 
         set((state) => {
           if (state.terminals.has(sessionName)) {

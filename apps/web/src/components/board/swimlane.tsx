@@ -1,4 +1,4 @@
-import { memo, useMemo, useCallback } from 'react';
+import { memo, useMemo, useCallback, type KeyboardEvent } from 'react';
 import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { ChevronDown, ChevronRight } from 'lucide-react';
@@ -25,6 +25,16 @@ export const Swimlane = memo(function Swimlane({ lane, agents, isCollapsed }: Sw
     toggleLaneCollapse(lane.id);
   }, [toggleLaneCollapse, lane.id]);
 
+  const handleKeyDown = useCallback(
+    (e: KeyboardEvent<HTMLDivElement>) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        toggleLaneCollapse(lane.id);
+      }
+    },
+    [toggleLaneCollapse, lane.id],
+  );
+
   return (
     <div
       data-testid={`swimlane-${lane.slug}`}
@@ -35,8 +45,13 @@ export const Swimlane = memo(function Swimlane({ lane, agents, isCollapsed }: Sw
         style={{ backgroundColor: lane.color }}
       />
       <div
+        role="button"
+        tabIndex={0}
+        aria-expanded={!isCollapsed}
+        aria-label={`Toggle ${lane.name} lane`}
         className="flex items-center justify-between px-3 py-2 cursor-pointer hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
         onClick={handleToggle}
+        onKeyDown={handleKeyDown}
       >
         <div className="flex items-center gap-2">
           {isCollapsed ? (

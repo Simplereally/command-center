@@ -1,4 +1,5 @@
 import { useEffect, useCallback, useRef } from 'react';
+import { pushModal, popModal, topModal } from '../../lib/modal-stack.js';
 import { cn } from '../../lib/cn.js';
 
 interface ConfirmDialogProps {
@@ -33,11 +34,25 @@ export function ConfirmDialog({
   }, [open]);
 
   useEffect(() => {
+    if (open) {
+      pushModal('confirmDialog');
+    }
+    return () => {
+      if (topModal() === 'confirmDialog') {
+        popModal();
+      }
+    };
+  }, [open]);
+
+  useEffect(() => {
     if (!open) return;
 
     function handleKeyDown(e: KeyboardEvent) {
       if (e.key === 'Escape') {
-        onCancel();
+        if (topModal() === 'confirmDialog') {
+          e.stopImmediatePropagation();
+          onCancel();
+        }
       }
     }
 

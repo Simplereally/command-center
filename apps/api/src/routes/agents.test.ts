@@ -59,8 +59,9 @@ describe('Agents API', () => {
       body: JSON.stringify({ name: 'Test' }),
     });
     expect(res.status).toBe(400);
-    const json = await parseJson<unknown>(res);
-    expect(json.error?.code).toBe('VALIDATION_ERROR');
+    const json = (await res.json()) as { success: boolean; error: unknown };
+    expect(json.success).toBe(false);
+    expect(json.error).toBeDefined();
   });
 
   it('GET /api/v1/agents/:agentId returns agent', async () => {

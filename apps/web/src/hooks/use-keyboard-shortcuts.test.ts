@@ -2,6 +2,7 @@ import { renderHook } from '@testing-library/react';
 import { useKeyboardShortcuts } from './use-keyboard-shortcuts.js';
 import { useUiStore } from '../stores/ui-store.js';
 import { useAgentStore } from '../stores/agent-store.js';
+import { clearModalStack, pushModal } from '../lib/modal-stack.js';
 import { AgentStatus } from '@command-center/shared';
 import type { AgentResponse } from '@command-center/shared';
 
@@ -80,6 +81,7 @@ function dispatchKey(target: Element | null, key: string, init: Partial<Keyboard
 describe('useKeyboardShortcuts', () => {
   beforeEach(() => {
     mockNavigate.mockClear();
+    clearModalStack();
     useUiStore.setState({
       sidePanelMode: 'closed',
       sidePanelWidth: 40,
@@ -274,12 +276,13 @@ describe('useKeyboardShortcuts', () => {
     expect(mockNavigate).toHaveBeenCalledWith('/settings');
   });
 
-  it('closes create dialog on Escape when dialog is open', () => {
-    useUiStore.setState({ createAgentDialogOpen: true });
+  it('does not close side panel on Escape when a modal is on the stack', () => {
+    useUiStore.setState({ sidePanelMode: 'detail', selectedAgentId: 'agent-1' });
+    pushModal('createAgentDialog');
     renderHook(() => useKeyboardShortcuts());
 
     dispatchKey(document.body, 'Escape');
-    expect(useUiStore.getState().createAgentDialogOpen).toBe(false);
+    expect(useUiStore.getState().sidePanelMode).toBe('detail');
   });
 
   it('opens detail panel on Enter when agent selected', () => {

@@ -56,6 +56,9 @@ export function useLogStream(agentId: string | null): UseLogStreamResult {
     });
   }, []);
 
+  const addLogRef = useRef(addLog);
+  addLogRef.current = addLog;
+
   const clearLogs = useCallback(() => {
     setLogs([]);
     seenIdsRef.current.clear();
@@ -116,7 +119,7 @@ export function useLogStream(agentId: string | null): UseLogStreamResult {
     es.addEventListener('log', (event: MessageEvent) => {
       try {
         const raw = JSON.parse(event.data as string) as Record<string, unknown>;
-        addLog({
+        addLogRef.current({
           id: String(raw.id),
           level: raw.level as LogLevel,
           content: parseLogContent(raw),
@@ -147,7 +150,7 @@ export function useLogStream(agentId: string | null): UseLogStreamResult {
       eventSourceRef.current = null;
       setConnected(false);
     };
-  }, [agentId, addLog]);
+  }, [agentId]);
 
   return { logs, connected, error, clearLogs };
 }

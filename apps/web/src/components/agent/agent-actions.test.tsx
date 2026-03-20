@@ -216,7 +216,9 @@ describe('AgentActions', () => {
     await user.click(screen.getByRole('button', { name: 'Start' }));
 
     await waitFor(() => {
-      expect(toast.error).toHaveBeenCalledWith('Start failed');
+      expect(toast.error).toHaveBeenCalledWith('Failed to start agent', {
+        description: 'Start failed',
+      });
     });
   });
 

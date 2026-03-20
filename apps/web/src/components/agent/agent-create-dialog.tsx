@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect, useRef, type FormEvent } from 'react';
 import { X } from 'lucide-react';
 import { useAgentStore } from '../../stores/agent-store.js';
+import { pushModal, popModal, topModal } from '../../lib/modal-stack.js';
 import { cn } from '../../lib/cn.js';
 
 interface AgentCreateDialogProps {
@@ -40,11 +41,25 @@ export function AgentCreateDialog({ open, onClose, boardId, swimlaneId }: AgentC
   }, [open]);
 
   useEffect(() => {
+    if (open) {
+      pushModal('createAgentDialog');
+    }
+    return () => {
+      if (topModal() === 'createAgentDialog') {
+        popModal();
+      }
+    };
+  }, [open]);
+
+  useEffect(() => {
     if (!open) return;
 
     function handleKeyDown(e: KeyboardEvent) {
       if (e.key === 'Escape') {
-        onClose();
+        if (topModal() === 'createAgentDialog') {
+          e.stopImmediatePropagation();
+          onClose();
+        }
       }
     }
 

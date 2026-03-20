@@ -1,5 +1,6 @@
 import { useEffect, useCallback } from 'react';
 import { X } from 'lucide-react';
+import { pushModal, popModal, topModal } from '../../lib/modal-stack.js';
 
 export interface KeyboardHelpProps {
   open: boolean;
@@ -45,10 +46,24 @@ const shortcutGroups: ShortcutGroup[] = [
 ];
 
 export function KeyboardHelp({ open, onClose }: KeyboardHelpProps) {
+  useEffect(() => {
+    if (open) {
+      pushModal('keyboardHelp');
+    }
+    return () => {
+      if (topModal() === 'keyboardHelp') {
+        popModal();
+      }
+    };
+  }, [open]);
+
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        onClose();
+        if (topModal() === 'keyboardHelp') {
+          e.stopImmediatePropagation();
+          onClose();
+        }
       }
     },
     [onClose],

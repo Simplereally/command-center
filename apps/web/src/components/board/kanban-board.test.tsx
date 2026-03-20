@@ -26,16 +26,20 @@ vi.mock('react-router', async () => {
   };
 });
 
-vi.mock('../../stores/board-store.js', () => ({
-  useBoardStore: (selector: (s: Record<string, unknown>) => unknown) =>
+vi.mock('../../stores/board-store.js', () => {
+  const storeMock = (selector: (s: Record<string, unknown>) => unknown) =>
     selector({
       swimlanes: mockSwimlanes.value,
       loading: mockLoading.value,
       error: null,
       fetchSwimlanes: mockFetchSwimlanes,
       fetchBoard: mockFetchBoard,
-    }),
-}));
+    });
+  storeMock.getState = () => ({
+    clearSwimlanes: vi.fn(),
+  });
+  return { useBoardStore: storeMock };
+});
 
 vi.mock('../../stores/agent-store.js', () => {
   const storeMock = (selector: (s: Record<string, unknown>) => unknown) =>
@@ -51,16 +55,26 @@ vi.mock('../../stores/agent-store.js', () => {
   storeMock.getState = () => ({
     fetchAgents: mockFetchAgents,
     optimisticMove: mockOptimisticMove,
+    clearAgents: vi.fn(),
   });
   return { useAgentStore: storeMock };
 });
 
-vi.mock('../../stores/ui-store.js', () => ({
-  useUiStore: (selector: (s: Record<string, unknown>) => unknown) =>
+vi.mock('../../stores/ui-store.js', () => {
+  const storeMock = (selector: (s: Record<string, unknown>) => unknown) =>
     selector({
       collapsedLanes: mockCollapsedLanes.value,
-    }),
-}));
+      searchQuery: '',
+      statusFilters: new Set<string>(),
+      setSearchQuery: vi.fn(),
+      toggleStatusFilter: vi.fn(),
+      clearFilters: vi.fn(),
+    });
+  storeMock.getState = () => ({
+    openCreateAgentDialog: vi.fn(),
+  });
+  return { useUiStore: storeMock };
+});
 
 vi.mock('@command-center/shared', async () => {
   const actual =

@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import type { AgentResponse, UpdateAgent } from '@command-center/shared';
 import { useAgentStore } from '../../stores/agent-store.js';
+import { formatRelativeTime } from '../../lib/format-date.js';
 import { AgentStatusBadge } from './agent-status-badge.js';
 import { AgentLogViewer } from './agent-log-viewer.js';
 import { AgentActions } from './agent-actions.js';
@@ -10,10 +11,6 @@ import { ErrorBoundary } from '../error-boundary/index.js';
 
 interface AgentDetailProps {
   agent: AgentResponse;
-}
-
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleString();
 }
 
 export function AgentDetail({ agent }: AgentDetailProps) {
@@ -58,13 +55,13 @@ export function AgentDetail({ agent }: AgentDetailProps) {
             <dt className="text-xs font-medium text-text-tertiary uppercase tracking-wide">
               Created
             </dt>
-            <dd className="mt-0.5 text-sm text-text-primary">{formatDate(agent.createdAt)}</dd>
+            <dd className="mt-0.5 text-sm text-text-primary">{formatRelativeTime(agent.createdAt)}</dd>
           </div>
           <div>
             <dt className="text-xs font-medium text-text-tertiary uppercase tracking-wide">
               Updated
             </dt>
-            <dd className="mt-0.5 text-sm text-text-primary">{formatDate(agent.updatedAt)}</dd>
+            <dd className="mt-0.5 text-sm text-text-primary">{formatRelativeTime(agent.updatedAt)}</dd>
           </div>
         </div>
 

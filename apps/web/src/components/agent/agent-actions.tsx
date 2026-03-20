@@ -37,41 +37,49 @@ export function AgentActions({ agent }: AgentActionsProps) {
   const handleStart = useCallback(async () => {
     try {
       await startAgent(agent.id);
-      toast.success(`Agent "${agent.name}" started`);
+      toast.success('Agent started');
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to start agent');
+      toast.error('Failed to start agent', {
+        description: err instanceof Error ? err.message : undefined,
+      });
     }
-  }, [startAgent, agent.id, agent.name]);
+  }, [startAgent, agent.id]);
 
   const handleStop = useCallback(async () => {
     try {
       await stopAgent(agent.id);
-      toast(`Agent "${agent.name}" stopped`);
+      toast('Agent stopped');
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to stop agent');
+      toast.error('Failed to stop agent', {
+        description: err instanceof Error ? err.message : undefined,
+      });
     }
-  }, [stopAgent, agent.id, agent.name]);
+  }, [stopAgent, agent.id]);
 
   const handleRestart = useCallback(async () => {
     try {
       await restartAgent(agent.id);
-      toast.success(`Agent "${agent.name}" restarted`);
+      toast.success('Agent started');
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to restart agent');
+      toast.error('Failed to restart agent', {
+        description: err instanceof Error ? err.message : undefined,
+      });
     }
-  }, [restartAgent, agent.id, agent.name]);
+  }, [restartAgent, agent.id]);
 
   const handleDelete = useCallback(async () => {
     try {
       await deleteAgent(agent.id);
-      toast.success(`Agent "${agent.name}" deleted`);
+      toast('Agent deleted');
       closeSidePanel();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to delete agent');
+      toast.error('Failed to delete agent', {
+        description: err instanceof Error ? err.message : undefined,
+      });
     } finally {
       setConfirmDelete(false);
     }
-  }, [deleteAgent, agent.id, agent.name, closeSidePanel]);
+  }, [deleteAgent, agent.id, closeSidePanel]);
 
   const iconButtonClasses = cn(
     'inline-flex items-center justify-center rounded-lg p-2 text-text-secondary transition-colors',

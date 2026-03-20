@@ -7,11 +7,13 @@ import { AgentCard } from './agent-card.js';
 const mockOpenDetailPanel = vi.fn();
 const mockOpenTerminalPanel = vi.fn();
 
-const { mockSelectedAgentId, mockAgentLogs, mockDeleteAgent, mockRestartAgent } = vi.hoisted(() => ({
+const { mockSelectedAgentId, mockAgentLogs, mockDeleteAgent, mockRestartAgent, mockCreateAgent, mockAgentsMap } = vi.hoisted(() => ({
   mockSelectedAgentId: { value: null as string | null },
   mockAgentLogs: { value: new Map<string, LogResponse[]>() },
   mockDeleteAgent: vi.fn().mockResolvedValue(undefined),
   mockRestartAgent: vi.fn().mockResolvedValue(undefined),
+  mockCreateAgent: vi.fn().mockResolvedValue(undefined),
+  mockAgentsMap: { value: new Map<string, AgentResponse>() },
 }));
 
 vi.mock('../../stores/ui-store.js', () => ({
@@ -31,7 +33,10 @@ vi.mock('../../stores/agent-store.js', () => {
   storeMock.getState = () => ({
     restartAgent: mockRestartAgent,
     deleteAgent: mockDeleteAgent,
+    createAgent: mockCreateAgent,
+    agents: mockAgentsMap.value,
   });
+  storeMock.setState = vi.fn();
   return { useAgentStore: storeMock };
 });
 
@@ -65,6 +70,7 @@ describe('AgentCard', () => {
     vi.clearAllMocks();
     mockSelectedAgentId.value = null;
     mockAgentLogs.value = new Map();
+    mockAgentsMap.value = new Map([['agent-1', makeAgent()]]);
   });
 
   it('shows agent name and status dot', () => {
@@ -212,45 +218,48 @@ describe('AgentCard', () => {
     expect(screen.queryByTestId('live-timer')).not.toBeInTheDocument();
   });
 
-  describe('delete confirmation dialog', () => {
-    it('opens confirm dialog when Delete is clicked in context menu', async () => {
-      const { user } = render(<AgentCard agent={makeAgent({ id: 'agent-1', name: 'Test Agent' })} />);
+  describe('delete with undo', () => {
+    it('removes agent from store immediately on Delete click', async () => {
+      const agent = makeAgent({ id: 'agent-1', name: 'Test Agent' });
+      mockAgentsMap.value = new Map([['agent-1', agent]]);
+
+      const { user } = render(<AgentCard agent={agent} />);
 
       const card = screen.getByTestId('agent-card-agent-1');
       fireEvent.contextMenu(card);
 
       await user.click(screen.getByText('Delete'));
-
-      expect(screen.getByTestId('confirm-dialog')).toBeInTheDocument();
-      expect(screen.getByText('Delete Agent')).toBeInTheDocument();
-      expect(screen.getByText(/Are you sure you want to delete "Test Agent"/)).toBeInTheDocument();
-    });
-
-    it('calls deleteAgent when confirm is clicked', async () => {
-      const { user } = render(<AgentCard agent={makeAgent({ id: 'agent-1', name: 'Test Agent' })} />);
-
-      const card = screen.getByTestId('agent-card-agent-1');
-      fireEvent.contextMenu(card);
-      await user.click(screen.getByText('Delete'));
-
-      await user.click(screen.getByRole('button', { name: 'Delete' }));
-
-      expect(mockDeleteAgent).toHaveBeenCalledWith('agent-1');
-    });
-
-    it('closes confirm dialog when cancel is clicked', async () => {
-      const { user } = render(<AgentCard agent={makeAgent({ id: 'agent-1', name: 'Test Agent' })} />);
-
-      const card = screen.getByTestId('agent-card-agent-1');
-      fireEvent.contextMenu(card);
-      await user.click(screen.getByText('Delete'));
-
-      expect(screen.getByTestId('confirm-dialog')).toBeInTheDocument();
-
-      await user.click(screen.getByRole('button', { name: 'Cancel' }));
 
       expect(screen.queryByTestId('confirm-dialog')).not.toBeInTheDocument();
-      expect(mockDeleteAgent).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('duplicate', () => {
+    it('shows Duplicate menu item in context menu', () => {
+      render(<AgentCard agent={makeAgent({ id: 'agent-1' })} />);
+
+      const card = screen.getByTestId('agent-card-agent-1');
+      fireEvent.contextMenu(card);
+
+      expect(screen.getByText('Duplicate')).toBeInTheDocument();
+    });
+
+    it('calls createAgent with copy name when Duplicate is clicked', async () => {
+      const agent = makeAgent({ id: 'agent-1', name: 'My Agent', boardId: 'board-1', swimlaneId: 'lane-1' });
+      const { user } = render(<AgentCard agent={agent} />);
+
+      const card = screen.getByTestId('agent-card-agent-1');
+      fireEvent.contextMenu(card);
+
+      await user.click(screen.getByText('Duplicate'));
+
+      expect(mockCreateAgent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: 'My Agent (copy)',
+          boardId: 'board-1',
+          swimlaneId: 'lane-1',
+        }),
+      );
     });
   });
 

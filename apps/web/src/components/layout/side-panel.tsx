@@ -7,8 +7,7 @@ import { AgentDetail } from '../agent/agent-detail.js';
 import { TerminalPanel } from '../terminal/terminal-panel.js';
 import type { TerminalSession } from '../terminal/terminal-panel.js';
 import { ErrorBoundary } from '../error-boundary/index.js';
-
-const WS_BASE_URL = 'ws://localhost:4000';
+import { WS_BASE_URL } from '../../lib/constants.js';
 
 export function SidePanel() {
   const sidePanelMode = useUiStore((s) => s.sidePanelMode);

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback, memo } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Terminal, RotateCcw, Trash2, GripVertical } from 'lucide-react';
+import { Terminal, RotateCcw, Trash2, GripVertical, Copy } from 'lucide-react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { toast } from 'sonner';
 import type { AgentResponse } from '@command-center/shared';
@@ -9,8 +9,9 @@ import { useUiStore } from '../../stores/ui-store.js';
 import { useAgentStore } from '../../stores/agent-store.js';
 import { StatusDot } from '../ui/status-dot.js';
 import { LiveTimer } from '../ui/live-timer.js';
-import { ConfirmDialog } from '../ui/confirm-dialog.js';
 import { cn } from '../../lib/cn.js';
+
+const UNDO_DELAY_MS = 5_000;
 
 interface AgentCardProps {
   agent: AgentResponse;
@@ -81,42 +82,99 @@ export const AgentCard = memo(function AgentCard({ agent }: AgentCardProps) {
 
   const [isRestarting, setIsRestarting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
 
   const handleRestart = useCallback(async () => {
     closeContextMenu();
     setIsRestarting(true);
     try {
       await useAgentStore.getState().restartAgent(agent.id);
-      toast.success(`Agent "${agent.name}" restarted`);
+      toast.success('Agent started');
     } catch (err) {
-      toast.error(`Failed to restart agent: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      toast.error('Failed to restart agent', {
+        description: err instanceof Error ? err.message : undefined,
+      });
     } finally {
       setIsRestarting(false);
     }
-  }, [closeContextMenu, agent.id, agent.name]);
+  }, [closeContextMenu, agent.id]);
+
+  const deleteTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (deleteTimerRef.current) {
+        clearTimeout(deleteTimerRef.current);
+      }
+    };
+  }, []);
 
   const handleDeleteClick = useCallback(() => {
     closeContextMenu();
-    setDeleteConfirmOpen(true);
-  }, [closeContextMenu]);
 
-  const handleDeleteConfirm = useCallback(async () => {
-    setDeleteConfirmOpen(false);
+    const store = useAgentStore.getState();
+    const agentSnapshot = store.agents.get(agent.id);
+    if (!agentSnapshot) return;
+
+    const frozen: AgentResponse = { ...agentSnapshot };
+
+    store.agents.delete(agent.id);
+    useAgentStore.setState({ agents: new Map(store.agents) });
     setIsDeleting(true);
-    try {
-      await useAgentStore.getState().deleteAgent(agent.id);
-      toast.success(`Agent "${agent.name}" deleted`);
-    } catch (err) {
-      toast.error(`Failed to delete agent: ${err instanceof Error ? err.message : 'Unknown error'}`);
-    } finally {
-      setIsDeleting(false);
-    }
-  }, [agent.id, agent.name]);
 
-  const handleDeleteCancel = useCallback(() => {
-    setDeleteConfirmOpen(false);
-  }, []);
+    let undone = false;
+
+    deleteTimerRef.current = setTimeout(() => {
+      if (!undone) {
+        useAgentStore.getState().deleteAgent(agent.id).catch(() => {
+          const currentStore = useAgentStore.getState();
+          currentStore.agents.set(agent.id, frozen);
+          useAgentStore.setState({ agents: new Map(currentStore.agents) });
+        });
+      }
+      setIsDeleting(false);
+      deleteTimerRef.current = null;
+    }, UNDO_DELAY_MS);
+
+    toast('Agent deleted', {
+      action: {
+        label: 'Undo',
+        onClick: () => {
+          undone = true;
+          if (deleteTimerRef.current) {
+            clearTimeout(deleteTimerRef.current);
+            deleteTimerRef.current = null;
+          }
+          const currentStore = useAgentStore.getState();
+          currentStore.agents.set(agent.id, frozen);
+          useAgentStore.setState({ agents: new Map(currentStore.agents) });
+          setIsDeleting(false);
+        },
+      },
+      duration: UNDO_DELAY_MS,
+    });
+  }, [closeContextMenu, agent.id]);
+
+  const handleDuplicate = useCallback(() => {
+    closeContextMenu();
+    useAgentStore
+      .getState()
+      .createAgent({
+        name: `${agent.name} (copy)`,
+        boardId: agent.boardId,
+        swimlaneId: agent.swimlaneId,
+        workingDir: agent.workingDir ?? undefined,
+        envVars: agent.envVars ?? undefined,
+        command: agent.command ?? undefined,
+      })
+      .then(() => {
+        toast.success('Agent duplicated');
+      })
+      .catch((err) => {
+        toast.error('Failed to duplicate agent', {
+          description: err instanceof Error ? err.message : undefined,
+        });
+      });
+  }, [closeContextMenu, agent]);
 
   return (
     <motion.div
@@ -199,12 +257,20 @@ export const AgentCard = memo(function AgentCard({ agent }: AgentCardProps) {
           </button>
           <button
             type="button"
+            className="flex w-full items-center gap-2 px-3 py-2 text-sm text-text-primary hover:bg-surface-hover cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+            onClick={handleDuplicate}
+          >
+            <Copy className="h-3.5 w-3.5" />
+            Duplicate
+          </button>
+          <button
+            type="button"
             className="flex w-full items-center gap-2 px-3 py-2 text-sm text-text-primary hover:bg-surface-hover cursor-pointer disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
             onClick={handleRestart}
             disabled={isRestarting}
           >
             <RotateCcw className={cn('h-3.5 w-3.5', isRestarting && 'animate-spin')} />
-            {isRestarting ? 'Restarting…' : 'Restart'}
+            {isRestarting ? 'Restarting\u2026' : 'Restart'}
           </button>
           <button
             type="button"
@@ -213,20 +279,10 @@ export const AgentCard = memo(function AgentCard({ agent }: AgentCardProps) {
             disabled={isDeleting}
           >
             <Trash2 className="h-3.5 w-3.5" />
-            {isDeleting ? 'Deleting…' : 'Delete'}
+            {isDeleting ? 'Deleting\u2026' : 'Delete'}
           </button>
         </div>
       )}
-
-      <ConfirmDialog
-        open={deleteConfirmOpen}
-        title="Delete Agent"
-        message={`Are you sure you want to delete "${agent.name}"? This action cannot be undone.`}
-        confirmLabel="Delete"
-        destructive
-        onConfirm={handleDeleteConfirm}
-        onCancel={handleDeleteCancel}
-      />
     </motion.div>
   );
 });

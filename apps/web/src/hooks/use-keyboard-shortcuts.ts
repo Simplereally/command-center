@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router';
 import { useUiStore } from '../stores/ui-store.js';
 import { useAgentStore } from '../stores/agent-store.js';
 import { useBoardStore } from '../stores/board-store.js';
+import { topModal } from '../lib/modal-stack.js';
 import { AgentStatus } from '@command-center/shared';
 
 const ACTIVE_STATUSES = new Set<string>([
@@ -64,9 +65,11 @@ export function useKeyboardShortcuts(): void {
       }
 
       if (key === 'Escape') {
+        if (topModal()) {
+          return;
+        }
         event.preventDefault();
         useUiStore.getState().closeSidePanel();
-        useUiStore.getState().closeCreateAgentDialog();
         return;
       }
 

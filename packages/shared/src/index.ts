@@ -21,7 +21,7 @@ export {
   createSwimlaneSchema,
 } from './schemas/swimlane.js';
 
-export { logResponseSchema } from './schemas/log.js';
+export { createLogSchema, logResponseSchema } from './schemas/log.js';
 
 export { metricResponseSchema } from './schemas/metric.js';
 
@@ -38,6 +38,7 @@ export type {
   SwimlaneResponse,
   UpdateSwimlane,
   CreateSwimlane,
+  CreateLog,
   LogLevel,
   LogResponse,
   MetricResponse,

@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { Blocks, Plus, Search, Settings } from 'lucide-react';
 import { useBoardStore } from '../../stores/board-store.js';
@@ -17,9 +17,48 @@ export function TopBar() {
   const closeDialog = useUiStore((s) => s.closeCreateAgentDialog);
   const navigate = useNavigate();
 
+  const [showNewBoard, setShowNewBoard] = useState(false);
+  const [newBoardName, setNewBoardName] = useState('');
+  const [isCreatingBoard, setIsCreatingBoard] = useState(false);
+  const newBoardInputRef = useRef<HTMLInputElement>(null);
+
   useEffect(() => {
     fetchBoards();
   }, [fetchBoards]);
+
+  useEffect(() => {
+    if (showNewBoard) {
+      requestAnimationFrame(() => newBoardInputRef.current?.focus());
+    }
+  }, [showNewBoard]);
+
+  const handleCreateBoard = useCallback(async () => {
+    const name = newBoardName.trim();
+    if (!name) return;
+    setIsCreatingBoard(true);
+    try {
+      const board = await useBoardStore.getState().createBoard(name);
+      setShowNewBoard(false);
+      setNewBoardName('');
+      navigate(`/boards/${board.id}`);
+    } catch {
+      // error handled by store
+    } finally {
+      setIsCreatingBoard(false);
+    }
+  }, [newBoardName, navigate]);
+
+  const handleNewBoardKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === 'Enter') {
+        handleCreateBoard();
+      } else if (e.key === 'Escape') {
+        setShowNewBoard(false);
+        setNewBoardName('');
+      }
+    },
+    [handleCreateBoard],
+  );
 
   const notStartedSwimlane = swimlanes.find((s) => s.slug === 'not-started');
 
@@ -35,7 +74,7 @@ export function TopBar() {
           <span className="text-lg font-bold text-text-primary">Command Center</span>
         </div>
 
-        {/* Center: Board selector + View mode toggle */}
+        {/* Center: Board selector + New board + View mode toggle */}
         <div className="flex items-center gap-3">
           <select
             className={cn(
@@ -59,6 +98,45 @@ export function TopBar() {
               </option>
             ))}
           </select>
+
+          {showNewBoard ? (
+            <div className="flex items-center gap-1">
+              <input
+                ref={newBoardInputRef}
+                type="text"
+                value={newBoardName}
+                onChange={(e) => setNewBoardName(e.target.value)}
+                onKeyDown={handleNewBoardKeyDown}
+                onBlur={() => {
+                  if (!newBoardName.trim()) {
+                    setShowNewBoard(false);
+                  }
+                }}
+                placeholder="Board name"
+                data-testid="new-board-input"
+                disabled={isCreatingBoard}
+                className={cn(
+                  'h-7 w-36 rounded-md border border-border bg-background px-2 text-sm text-text-primary placeholder:text-text-tertiary',
+                  'focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent',
+                )}
+              />
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setShowNewBoard(true)}
+              data-testid="new-board-button"
+              className={cn(
+                'flex items-center justify-center rounded-md border border-border p-1',
+                'hover:bg-surface-hover hover:border-border-strong transition-colors',
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+              )}
+              aria-label="Create new board"
+            >
+              <Plus className="h-4 w-4 text-text-secondary" />
+            </button>
+          )}
+
           <ViewModeToggle />
         </div>
 

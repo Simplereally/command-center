@@ -1,28 +1,17 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useAgentStore } from '../../stores/agent-store.js';
+import { useUiStore } from '../../stores/ui-store.js';
 import { AgentStatus } from '@command-center/shared';
 import { api } from '../../lib/api-client.js';
+import { formatRelativeTime } from '../../lib/format-date.js';
 
-function formatRelativeTime(date: Date): string {
-  const now = Date.now();
-  const diffMs = now - date.getTime();
-  const diffS = Math.floor(diffMs / 1000);
-
-  if (diffS < 5) return 'just now';
-  if (diffS < 60) return `${diffS}s ago`;
-  const diffM = Math.floor(diffS / 60);
-  if (diffM < 60) return `${diffM}m ago`;
-  const diffH = Math.floor(diffM / 60);
-  if (diffH < 24) return `${diffH}h ago`;
-  const diffD = Math.floor(diffH / 24);
-  return `${diffD}d ago`;
-}
-
-const TMUX_POLL_INTERVAL_MS = 10_000;
+const TMUX_POLL_INTERVAL_MS = 30_000;
 const RELATIVE_TIME_TICK_MS = 1_000;
 
 export function StatusBar() {
   const agents = useAgentStore((s) => s.agents);
+  const selectedAgentId = useUiStore((s) => s.selectedAgentId);
+  const commandPaletteOpen = useUiStore((s) => s.commandPaletteOpen);
 
   const { runningCount, totalCount } = useMemo(() => {
     let running = 0;
@@ -37,26 +26,52 @@ export function StatusBar() {
   const [, setTick] = useState(0);
   const prevAgentsRef = useRef<Map<string, string>>(new Map());
 
+  const fetchTmuxSessions = useCallback(async () => {
+    try {
+      const sessions = await api.tmux.listSessions();
+      setTmuxCount(sessions.length);
+    } catch {
+      // silently ignore — tmux count is non-critical
+    }
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
+    let intervalId: ReturnType<typeof setInterval> | null = null;
 
-    const fetchTmuxSessions = async () => {
-      try {
-        const sessions = await api.tmux.listSessions();
-        if (!cancelled) setTmuxCount(sessions.length);
-      } catch {
-        // silently ignore — tmux count is non-critical
+    const startPolling = () => {
+      if (cancelled) return;
+      fetchTmuxSessions();
+      intervalId = setInterval(fetchTmuxSessions, TMUX_POLL_INTERVAL_MS);
+    };
+
+    const stopPolling = () => {
+      if (intervalId) {
+        clearInterval(intervalId);
+        intervalId = null;
       }
     };
 
-    fetchTmuxSessions();
-    const intervalId = setInterval(fetchTmuxSessions, TMUX_POLL_INTERVAL_MS);
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        stopPolling();
+      } else {
+        startPolling();
+      }
+    };
+
+    if (!document.hidden) {
+      startPolling();
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
       cancelled = true;
-      clearInterval(intervalId);
+      stopPolling();
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, []);
+  }, [fetchTmuxSessions]);
 
   useEffect(() => {
     const currentStatuses = new Map<string, string>();
@@ -112,11 +127,33 @@ export function StatusBar() {
       </div>
 
       {/* Right: Keyboard hints */}
-      <div className="flex items-center gap-3">
-        <kbd className="rounded border border-border bg-surface-hover px-1.5 py-0.5 font-mono text-[10px] text-text-tertiary">
-          ⌘K
-        </kbd>
-        <span className="text-text-tertiary">command palette</span>
+      <div data-testid="keyboard-hints" className="flex items-center gap-3 text-text-tertiary">
+        {commandPaletteOpen ? (
+          <>
+            <kbd className="rounded border border-border bg-surface-hover px-1.5 py-0.5 font-mono text-[10px]">↑↓</kbd>
+            <span>navigate</span>
+            <kbd className="rounded border border-border bg-surface-hover px-1.5 py-0.5 font-mono text-[10px]">Enter</kbd>
+            <span>select</span>
+            <kbd className="rounded border border-border bg-surface-hover px-1.5 py-0.5 font-mono text-[10px]">Esc</kbd>
+            <span>close</span>
+          </>
+        ) : selectedAgentId ? (
+          <>
+            <kbd className="rounded border border-border bg-surface-hover px-1.5 py-0.5 font-mono text-[10px]">T</kbd>
+            <span>terminal</span>
+            <kbd className="rounded border border-border bg-surface-hover px-1.5 py-0.5 font-mono text-[10px]">Space</kbd>
+            <span>start/stop</span>
+            <kbd className="rounded border border-border bg-surface-hover px-1.5 py-0.5 font-mono text-[10px]">R</kbd>
+            <span>restart</span>
+          </>
+        ) : (
+          <>
+            <kbd className="rounded border border-border bg-surface-hover px-1.5 py-0.5 font-mono text-[10px]">⌘K</kbd>
+            <span>command palette</span>
+            <kbd className="rounded border border-border bg-surface-hover px-1.5 py-0.5 font-mono text-[10px]">⌘N</kbd>
+            <span>new agent</span>
+          </>
+        )}
       </div>
     </footer>
   );

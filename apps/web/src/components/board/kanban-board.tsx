@@ -11,7 +11,7 @@ import {
   type DragEndEvent,
 } from '@dnd-kit/core';
 import { arrayMove } from '@dnd-kit/sortable';
-import { Bot } from 'lucide-react';
+import { AlertTriangle, Bot, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { SWIMLANE_STATUS_MAP } from '@command-center/shared';
 import type { AgentResponse } from '@command-center/shared';
@@ -32,10 +32,10 @@ const POLL_INTERVAL_MS = 5_000;
 const STOPPING_SLUGS = new Set(['not-started', 'done']);
 
 const LANE_TOAST_MESSAGES: Record<string, string> = {
-  'not-started': 'Agent stopped – moved to Not Started',
-  'in-progress': 'Agent started – moved to In Progress',
-  'review': 'Agent paused – moved to Review',
-  'done': 'Agent stopped – moved to Done',
+  'not-started': 'Moved to Not Started',
+  'in-progress': 'Moved to In Progress',
+  'review': 'Moved to Review',
+  'done': 'Moved to Done',
 };
 
 const EMPTY_AGENTS: AgentResponse[] = [];
@@ -85,9 +85,11 @@ export function KanbanBoard() {
   const { boardId } = useParams<{ boardId: string }>();
   const swimlanes = useBoardStore((s) => s.swimlanes);
   const loading = useBoardStore((s) => s.loading);
+  const boardError = useBoardStore((s) => s.error);
   const fetchSwimlanes = useBoardStore((s) => s.fetchSwimlanes);
   const fetchBoard = useBoardStore((s) => s.fetchBoard);
   const agents = useAgentStore((s) => s.agents);
+  const agentError = useAgentStore((s) => s.error);
   const fetchAgents = useAgentStore((s) => s.fetchAgents);
   const fetchLatestLogs = useAgentStore((s) => s.fetchLatestLogs);
   const optimisticMove = useAgentStore((s) => s.optimisticMove);
@@ -206,7 +208,7 @@ export function KanbanBoard() {
         const newStatus = SWIMLANE_STATUS_MAP[slug];
         if (newStatus) {
           const targetLane = swimlanes.find((l) => l.id === targetLaneId);
-          toast.success(LANE_TOAST_MESSAGES[slug] ?? `Agent moved to ${targetLane?.name ?? slug}`);
+          toast(LANE_TOAST_MESSAGES[slug] ?? `Moved to ${targetLane?.name ?? slug}`);
         }
 
         if (boardId) {
@@ -346,6 +348,16 @@ export function KanbanBoard() {
     return map;
   }, [filteredAgents]);
 
+  const errorMessage = boardError || agentError;
+
+  const handleRetry = useCallback(() => {
+    if (boardId) {
+      fetchBoard(boardId).catch(() => {});
+      fetchSwimlanes(boardId);
+      fetchAgents(boardId);
+    }
+  }, [boardId, fetchBoard, fetchSwimlanes, fetchAgents]);
+
   if (loading && sortedLanes.length === 0) {
     return (
       <div data-testid="kanban-board" className="flex h-full gap-4 overflow-x-auto p-4">
@@ -387,6 +399,24 @@ export function KanbanBoard() {
       onDragEnd={handleDragEnd}
     >
       <div data-testid="kanban-board" className="flex h-full flex-col">
+        {errorMessage && (
+          <div
+            data-testid="error-banner"
+            role="alert"
+            className="mx-4 mt-4 flex items-center gap-3 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400"
+          >
+            <AlertTriangle className="h-4 w-4 shrink-0" />
+            <span className="flex-1">{errorMessage}</span>
+            <button
+              type="button"
+              onClick={handleRetry}
+              className="inline-flex items-center gap-1.5 rounded-md bg-red-500/20 px-3 py-1 text-xs font-medium text-red-300 hover:bg-red-500/30 transition-colors"
+            >
+              <RefreshCw className="h-3 w-3" />
+              Retry
+            </button>
+          </div>
+        )}
         <BoardFilterBar resultCount={filteredAgents.length} totalCount={allAgents.length} />
         <div className="flex flex-1 gap-4 overflow-x-auto p-4">
           {sortedLanes.map((lane) => (

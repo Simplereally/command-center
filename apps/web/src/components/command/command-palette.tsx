@@ -18,6 +18,7 @@ import {
 import { useAgentStore } from '../../stores/agent-store.js';
 import { useBoardStore } from '../../stores/board-store.js';
 import { useUiStore } from '../../stores/ui-store.js';
+import { pushModal, popModal, topModal } from '../../lib/modal-stack.js';
 
 const STATUS_LABELS: Record<string, string> = {
   idle: 'Idle',
@@ -83,9 +84,23 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
   );
 
   useEffect(() => {
+    if (open) {
+      pushModal('commandPalette');
+    }
+    return () => {
+      if (topModal() === 'commandPalette') {
+        popModal();
+      }
+    };
+  }, [open]);
+
+  useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && open) {
-        onClose();
+        if (topModal() === 'commandPalette') {
+          e.stopImmediatePropagation();
+          onClose();
+        }
       }
     };
     document.addEventListener('keydown', handleKeyDown);

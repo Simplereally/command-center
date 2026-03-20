@@ -5,7 +5,7 @@ export type { CreateBoard, BoardResponse, UpdateBoard } from '../schemas/board.j
 
 export type { SwimlaneResponse, UpdateSwimlane, CreateSwimlane } from '../schemas/swimlane.js';
 
-export type { LogLevel, LogResponse } from '../schemas/log.js';
+export type { CreateLog, LogLevel, LogResponse } from '../schemas/log.js';
 
 export type { MetricResponse } from '../schemas/metric.js';
 
