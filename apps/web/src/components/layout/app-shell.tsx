@@ -11,12 +11,11 @@ import { AgentDetail } from '../agent/agent-detail.js';
 import { TerminalPanel } from '../terminal/terminal-panel.js';
 import { cn } from '../../lib/cn.js';
 import { useKeyboardShortcuts } from '../../hooks/use-keyboard-shortcuts.js';
+import { WS_BASE_URL } from '../../lib/constants.js';
 
 const LazyCommandPalette = lazy(() =>
   import('../command/command-palette.js').then((m) => ({ default: m.CommandPalette })),
 );
-
-const WS_BASE_URL = 'ws://localhost:4000';
 
 interface AppShellProps {
   children: ReactNode;
@@ -43,7 +42,7 @@ export function AppShell({ children }: AppShellProps) {
         id: selectedAgent.id,
         name: selectedAgent.tmuxSession,
         sessionId: selectedAgent.tmuxSession,
-        wsUrl: `${WS_BASE_URL}/api/v1/tmux/sessions/${selectedAgent.tmuxSession}/terminal`,
+        wsUrl: `${WS_BASE_URL}/api/v1/tmux/sessions/${encodeURIComponent(selectedAgent.tmuxSession)}/terminal`,
       },
     ];
   }, [selectedAgent?.id, selectedAgent?.tmuxSession]);

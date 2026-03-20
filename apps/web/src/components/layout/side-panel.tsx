@@ -1,6 +1,7 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { X } from 'lucide-react';
+import { toast } from 'sonner';
 import { useUiStore } from '../../stores/ui-store.js';
 import { useAgentStore } from '../../stores/agent-store.js';
 import { AgentDetail } from '../agent/agent-detail.js';
@@ -8,6 +9,7 @@ import { TerminalPanel } from '../terminal/terminal-panel.js';
 import type { TerminalSession } from '../terminal/terminal-panel.js';
 import { ErrorBoundary } from '../error-boundary/index.js';
 import { WS_BASE_URL } from '../../lib/constants.js';
+import { api } from '../../lib/api-client.js';
 
 export function SidePanel() {
   const sidePanelMode = useUiStore((s) => s.sidePanelMode);
@@ -20,6 +22,41 @@ export function SidePanel() {
 
   const [terminalSessions, setTerminalSessions] = useState<TerminalSession[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
+  const creatingSessionRef = useRef(false);
+
+  useEffect(() => {
+    if (
+      sidePanelMode !== 'terminal' ||
+      !selectedAgent ||
+      selectedAgent.tmuxSession ||
+      creatingSessionRef.current
+    ) {
+      return;
+    }
+
+    creatingSessionRef.current = true;
+    const sessionName = `cc-agent-${selectedAgent.id}`;
+
+    api.tmux.createSession(sessionName).then((created) => {
+      const newSession: TerminalSession = {
+        id: selectedAgent.id,
+        name: created.name,
+        sessionId: created.name,
+        wsUrl: `${WS_BASE_URL}/api/v1/tmux/sessions/${encodeURIComponent(created.name)}/terminal`,
+      };
+      setTerminalSessions((prev) => {
+        if (prev.some((s) => s.id === selectedAgent.id)) return prev;
+        return [newSession, ...prev];
+      });
+      setActiveSessionId(created.name);
+    }).catch((err: unknown) => {
+      toast.error(
+        `Failed to create terminal for agent: ${err instanceof Error ? err.message : 'Unknown error'}`,
+      );
+    }).finally(() => {
+      creatingSessionRef.current = false;
+    });
+  }, [sidePanelMode, selectedAgent]);
 
   const sessions = useMemo<TerminalSession[]>(() => {
     if (!selectedAgent?.tmuxSession) return terminalSessions;
@@ -27,7 +64,7 @@ export function SidePanel() {
       id: selectedAgent.id,
       name: selectedAgent.tmuxSession,
       sessionId: selectedAgent.tmuxSession,
-      wsUrl: `${WS_BASE_URL}/api/v1/tmux/sessions/${selectedAgent.tmuxSession}/terminal`,
+      wsUrl: `${WS_BASE_URL}/api/v1/tmux/sessions/${encodeURIComponent(selectedAgent.tmuxSession)}/terminal`,
     };
     const hasAgent = terminalSessions.some((s) => s.id === selectedAgent.id);
     return hasAgent ? terminalSessions : [agentSession, ...terminalSessions];

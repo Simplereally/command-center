@@ -1,11 +1,14 @@
 import { X, Plus } from 'lucide-react';
 import { cn } from '../../lib/cn.js';
 
+export type TabConnectionStatus = 'connected' | 'disconnected' | 'connecting';
+
 export interface TerminalTab {
   id: string;
   name: string;
   sessionId: string;
   isActive?: boolean;
+  status?: TabConnectionStatus;
 }
 
 export interface TerminalTabsProps {
@@ -53,6 +56,17 @@ export function TerminalTabs({
                 : 'text-text-secondary hover:bg-surface-hover hover:text-text-primary',
             )}
           >
+            {tab.status && (
+              <span
+                className={cn(
+                  'h-2 w-2 flex-shrink-0 rounded-full',
+                  tab.status === 'connected' && 'bg-[var(--status-running,hsl(142_71%_45%))]',
+                  tab.status === 'disconnected' && 'bg-[var(--status-error,hsl(0_62%_55%))]',
+                  tab.status === 'connecting' && 'bg-[var(--status-starting,hsl(217_91%_60%))] animate-pulse',
+                )}
+                aria-label={`Status: ${tab.status}`}
+              />
+            )}
             <span className="truncate">{tab.name}</span>
             <span
               data-testid={`terminal-tab-close-${tab.id}`}
