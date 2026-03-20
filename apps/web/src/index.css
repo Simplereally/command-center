@@ -85,48 +85,6 @@
   }
 }
 
-/* ── Base Styles ──────────────────────────────────────────────────────── */
-@layer base {
-  *,
-  *::before,
-  *::after {
-    border-color: var(--color-border);
-  }
-
-  html {
-    color-scheme: dark;
-    font-family: var(--font-sans);
-  }
-
-  body {
-    background-color: var(--color-background);
-    color: var(--color-text-primary);
-    min-height: 100vh;
-  }
-
-  ::selection {
-    background-color: var(--color-accent-muted);
-    color: var(--color-text-primary);
-  }
-
-  ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
-  }
-
-  ::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
-  ::-webkit-scrollbar-thumb {
-    background: var(--color-border);
-    border-radius: 4px;
-  }
-
-  ::-webkit-scrollbar-thumb:hover {
-    background: var(--color-border-strong);
-  }
-}
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
