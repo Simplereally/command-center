@@ -18,7 +18,7 @@ function isInputElement(target: EventTarget | null): boolean {
   return tag === 'input' || tag === 'textarea' || tag === 'select' || target.isContentEditable;
 }
 
-function scrollAgentIntoView(agentId: string): void {
+export function scrollAgentIntoView(agentId: string): void {
   requestAnimationFrame(() => {
     document
       .querySelector(`[data-testid="agent-card-${agentId}"]`)
@@ -137,6 +137,7 @@ export function useKeyboardShortcuts(): void {
               if (agent) {
                 useUiStore.getState().selectAgent(agent.id);
                 useUiStore.getState().setSelectedCardIndex(newSwimlane.id, cardIndex);
+                scrollAgentIntoView(agent.id);
               }
             }
           }
@@ -161,6 +162,7 @@ export function useKeyboardShortcuts(): void {
               if (agent) {
                 useUiStore.getState().selectAgent(agent.id);
                 useUiStore.getState().setSelectedCardIndex(newSwimlane.id, cardIndex);
+                scrollAgentIntoView(agent.id);
               }
             }
           }
@@ -182,6 +184,7 @@ export function useKeyboardShortcuts(): void {
               const agent = agentsInLane[newCardIndex];
               if (agent) {
                 useUiStore.getState().selectAgent(agent.id);
+                scrollAgentIntoView(agent.id);
               }
             }
           }
@@ -203,6 +206,7 @@ export function useKeyboardShortcuts(): void {
               const agent = agentsInLane[newCardIndex];
               if (agent) {
                 useUiStore.getState().selectAgent(agent.id);
+                scrollAgentIntoView(agent.id);
               }
             }
           }

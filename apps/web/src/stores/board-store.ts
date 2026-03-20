@@ -3,6 +3,11 @@ import { immer } from 'zustand/middleware/immer';
 import type { BoardResponse, SwimlaneResponse } from '@command-center/shared';
 import { api } from '../lib/api-client.js';
 
+export interface DeleteBoardResult {
+  wasCurrentBoard: boolean;
+  nextBoard: BoardResponse | null;
+}
+
 export interface BoardState {
   boards: BoardResponse[];
   currentBoard: BoardResponse | null;
@@ -15,7 +20,7 @@ export interface BoardState {
   fetchSwimlanes: (boardId: string) => Promise<void>;
   createBoard: (name: string) => Promise<BoardResponse>;
   updateBoard: (id: string, data: { name?: string }) => Promise<BoardResponse>;
-  deleteBoard: (id: string) => Promise<void>;
+  deleteBoard: (id: string) => Promise<DeleteBoardResult>;
   setCurrentBoard: (board: BoardResponse | null) => void;
   clearSwimlanes: () => void;
 
