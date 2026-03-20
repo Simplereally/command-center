@@ -7,6 +7,7 @@ import { AgentLogViewer } from './agent-log-viewer.js';
 import { AgentActions } from './agent-actions.js';
 import { AgentMetrics } from './agent-metrics.js';
 import { AgentConfigForm } from './agent-config-form.js';
+import { ProviderInfo } from './provider-badge.js';
 import { ErrorBoundary } from '../error-boundary/index.js';
 
 interface AgentDetailProps {
@@ -33,6 +34,10 @@ export function AgentDetail({ agent }: AgentDetailProps) {
           </div>
           <AgentActions agent={agent} />
         </div>
+
+        {agent.model && (
+          <ProviderInfo model={agent.model} />
+        )}
 
         <AgentMetrics agentId={agent.id} />
 

@@ -96,13 +96,14 @@ describe('AgentCard', () => {
   it('shows model badge when present', () => {
     render(<AgentCard agent={makeAgent({ model: 'gpt-4o' })} />);
 
-    expect(screen.getByText('gpt-4o')).toBeInTheDocument();
+    expect(screen.getByTestId('provider-badge')).toBeInTheDocument();
+    expect(screen.getByText('GPT-4o')).toBeInTheDocument();
   });
 
   it('does not show model badge when null', () => {
     render(<AgentCard agent={makeAgent({ model: null })} />);
 
-    expect(screen.queryByText('gpt-4o')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('provider-badge')).not.toBeInTheDocument();
   });
 
   it('calls openDetailPanel on click', async () => {

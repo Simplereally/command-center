@@ -9,6 +9,7 @@ import { useUiStore } from '../../stores/ui-store.js';
 import { useAgentStore } from '../../stores/agent-store.js';
 import { StatusDot } from '../ui/status-dot.js';
 import { LiveTimer } from '../ui/live-timer.js';
+import { ProviderBadge } from '../agent/provider-badge.js';
 import { cn } from '../../lib/cn.js';
 
 const UNDO_DELAY_MS = 5_000;
@@ -213,9 +214,7 @@ export const AgentCard = memo(function AgentCard({ agent }: AgentCardProps) {
 
       {agent.model && (
         <div className="mt-2 ml-5.5">
-          <span className="inline-block rounded-full bg-accent-muted px-2 py-0.5 text-xs font-mono text-accent">
-            {agent.model}
-          </span>
+          <ProviderBadge model={agent.model} />
         </div>
       )}
 

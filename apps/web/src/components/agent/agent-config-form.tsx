@@ -1,6 +1,7 @@
 import { useState, useCallback, type FormEvent, type ChangeEvent } from 'react';
 import { Pencil, Save, X, Loader2 } from 'lucide-react';
 import type { AgentResponse, UpdateAgent } from '@command-center/shared';
+import { getProviderForModel } from '@command-center/shared';
 import { toast } from 'sonner';
 import { cn } from '../../lib/cn.js';
 
@@ -188,6 +189,17 @@ export function AgentConfigForm({ agent, onSave }: AgentConfigFormProps) {
             <dt className="text-xs font-medium text-text-tertiary uppercase tracking-wide">Name</dt>
             <dd className={readOnlyClasses}>{agent.name}</dd>
           </div>
+          {agent.model && (
+            <div>
+              <dt className="text-xs font-medium text-text-tertiary uppercase tracking-wide">Provider</dt>
+              <dd className={readOnlyClasses}>
+                {(() => {
+                  const provider = getProviderForModel(agent.model!);
+                  return provider ? provider.name : 'Custom';
+                })()}
+              </dd>
+            </div>
+          )}
           <div>
             <dt className="text-xs font-medium text-text-tertiary uppercase tracking-wide">Working Directory</dt>
             <dd className={readOnlyClasses}>
