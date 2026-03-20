@@ -18,6 +18,14 @@ function isInputElement(target: EventTarget | null): boolean {
   return tag === 'input' || tag === 'textarea' || tag === 'select' || target.isContentEditable;
 }
 
+function scrollAgentIntoView(agentId: string): void {
+  requestAnimationFrame(() => {
+    document
+      .querySelector(`[data-testid="agent-card-${agentId}"]`)
+      ?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  });
+}
+
 export function useKeyboardShortcuts(): void {
   const navigate = useNavigate();
 

@@ -45,7 +45,11 @@ export const AgentCard = memo(function AgentCard({ agent }: AgentCardProps) {
   const handleContextMenu = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    setContextMenu({ x: e.clientX, y: e.clientY });
+    const menuWidth = 180;
+    const menuHeight = 140;
+    const x = Math.min(e.clientX, window.innerWidth - menuWidth - 8);
+    const y = Math.min(e.clientY, window.innerHeight - menuHeight - 8);
+    setContextMenu({ x, y });
   }, []);
 
   const closeContextMenu = useCallback(() => {
