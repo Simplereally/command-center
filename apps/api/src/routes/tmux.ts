@@ -179,12 +179,16 @@ export function registerTerminalWebSocket(
             ws.close(1011, 'Internal error');
             return;
           }
+          logger.info('Terminal WebSocket connected', { sessionName });
           terminalHandler.handleConnection(sessionName, ws.raw).catch((err) => {
             logger.error('Terminal connection error', {
               sessionName,
               error: err instanceof Error ? err.message : String(err),
             });
           });
+        },
+        onClose() {
+          logger.info('Terminal WebSocket disconnected', { sessionName });
         },
         onError(evt) {
           logger.error('WebSocket error', {

@@ -1,5 +1,5 @@
 import type { WebSocket } from 'ws';
-import { spawn, ChildProcess } from 'child_process';
+import { spawn, type ChildProcess } from 'child_process';
 import { TmuxClient } from '@command-center/tmux';
 import type {
   TerminalInputMessage,
@@ -13,9 +13,14 @@ type ClientMessage = TerminalInputMessage | TerminalResizeMessage;
 
 const RESIZE_DEBOUNCE_MS = 100;
 
+interface ConnectionEntry {
+  shell: ChildProcess;
+  ws: WebSocket;
+}
+
 export class TerminalHandler {
   private readonly tmuxClient: TmuxClient;
-  private readonly processes: Map<string, ChildProcess> = new Map();
+  private readonly connections: Map<string, Set<ConnectionEntry>> = new Map();
   private readonly resizeTimers: Map<string, ReturnType<typeof setTimeout>> = new Map();
 
   constructor(tmuxClient?: TmuxClient) {
@@ -23,7 +28,20 @@ export class TerminalHandler {
   }
 
   async handleConnection(sessionName: string, ws: WebSocket): Promise<void> {
-    const exists = await this.tmuxClient.sessionExists(sessionName);
+    let exists: boolean;
+    try {
+      exists = await this.tmuxClient.sessionExists(sessionName);
+    } catch (error) {
+      const errMsg: TerminalErrorMessage = {
+        type: 'terminal:error',
+        sessionId: sessionName,
+        error: `Failed to check session: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      };
+      ws.send(JSON.stringify(errMsg));
+      ws.close();
+      return;
+    }
+
     if (!exists) {
       const errorMsg: TerminalErrorMessage = {
         type: 'terminal:error',
@@ -53,7 +71,11 @@ export class TerminalHandler {
       return;
     }
 
-    this.processes.set(sessionName, shell);
+    const entry: ConnectionEntry = { shell, ws };
+    if (!this.connections.has(sessionName)) {
+      this.connections.set(sessionName, new Set());
+    }
+    this.connections.get(sessionName)!.add(entry);
 
     shell.stdout?.on('data', (data: Buffer) => {
       if (ws.readyState === ws.OPEN) {
@@ -69,12 +91,17 @@ export class TerminalHandler {
       }
     });
 
-    shell.on('exit', (code: number | null) => {
-      const exitMsg: TerminalExitMessage = { type: 'terminal:exit', sessionId: sessionName, exitCode: code ?? 0, signal: null };
+    shell.on('exit', (code: number | null, signal: string | null) => {
+      const exitMsg: TerminalExitMessage = {
+        type: 'terminal:exit',
+        sessionId: sessionName,
+        exitCode: code ?? 0,
+        signal: signal ?? null,
+      };
       if (ws.readyState === ws.OPEN) {
         ws.send(JSON.stringify(exitMsg));
       }
-      this.processes.delete(sessionName);
+      this.removeConnection(sessionName, entry);
     });
 
     shell.on('error', (error: Error) => {
@@ -82,7 +109,7 @@ export class TerminalHandler {
       if (ws.readyState === ws.OPEN) {
         ws.send(JSON.stringify(errMsg));
       }
-      this.processes.delete(sessionName);
+      this.removeConnection(sessionName, entry);
     });
 
     ws.on('message', (data: Buffer | string) => {
@@ -103,37 +130,62 @@ export class TerminalHandler {
 
       const message: ClientMessage = parsed;
 
-      if (message.type === 'terminal:input' && shell.stdin) {
-        shell.stdin.write(message.data);
+      if (message.type === 'terminal:input' && shell.stdin && !shell.killed) {
+        try {
+          shell.stdin.write(message.data);
+        } catch {
+          // stdin may have been closed if the process exited
+        }
       } else if (message.type === 'terminal:resize') {
         this.debounceResize(sessionName, message.cols, message.rows);
       }
     });
 
-    ws.on('close', () => {
+    const cleanup = () => {
       this.clearResizeTimer(sessionName);
-      this.processes.delete(sessionName);
-    });
+      if (!shell.killed) {
+        shell.kill('SIGTERM');
+        setTimeout(() => {
+          if (!shell.killed) {
+            shell.kill('SIGKILL');
+          }
+        }, 2000);
+      }
+      this.removeConnection(sessionName, entry);
+    };
 
-    ws.on('error', (_error: Error) => {
-      this.clearResizeTimer(sessionName);
-      this.processes.delete(sessionName);
-    });
+    ws.on('close', cleanup);
+    ws.on('error', cleanup);
+  }
+
+  private removeConnection(sessionName: string, entry: ConnectionEntry): void {
+    const entries = this.connections.get(sessionName);
+    if (entries) {
+      entries.delete(entry);
+      if (entries.size === 0) {
+        this.connections.delete(sessionName);
+      }
+    }
   }
 
   private debounceResize(sessionName: string, cols: number, rows: number): void {
+    if (cols <= 0 || rows <= 0) return;
     this.clearResizeTimer(sessionName);
     const timer = setTimeout(() => {
       this.resizeTimers.delete(sessionName);
-      spawn('tmux', [
-        'resize-pane',
-        '-t',
-        sessionName,
-        '-x',
-        String(cols),
-        '-y',
-        String(rows),
-      ]);
+      try {
+        spawn('tmux', [
+          'resize-pane',
+          '-t',
+          sessionName,
+          '-x',
+          String(Math.max(1, Math.floor(cols))),
+          '-y',
+          String(Math.max(1, Math.floor(rows))),
+        ]);
+      } catch {
+        // tmux session may no longer exist
+      }
     }, RESIZE_DEBOUNCE_MS);
     this.resizeTimers.set(sessionName, timer);
   }
@@ -169,15 +221,19 @@ export class TerminalHandler {
 
   killSession(sessionName: string): void {
     this.clearResizeTimer(sessionName);
-    const proc = this.processes.get(sessionName);
-    if (proc) {
-      proc.kill();
-      this.processes.delete(sessionName);
+    const entries = this.connections.get(sessionName);
+    if (entries) {
+      for (const entry of entries) {
+        if (!entry.shell.killed) {
+          entry.shell.kill('SIGTERM');
+        }
+      }
+      this.connections.delete(sessionName);
     }
   }
 
   getActiveSessions(): string[] {
-    return Array.from(this.processes.keys());
+    return Array.from(this.connections.keys());
   }
 }
 

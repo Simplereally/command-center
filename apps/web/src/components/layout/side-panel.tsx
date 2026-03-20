@@ -1,6 +1,6 @@
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
-import { X } from 'lucide-react';
+import { X, Terminal } from 'lucide-react';
 import { toast } from 'sonner';
 import { useUiStore } from '../../stores/ui-store.js';
 import { useAgentStore } from '../../stores/agent-store.js';
@@ -22,22 +22,27 @@ export function SidePanel() {
 
   const [terminalSessions, setTerminalSessions] = useState<TerminalSession[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
+  const [isCreatingAgentSession, setIsCreatingAgentSession] = useState(false);
   const creatingSessionRef = useRef(false);
+  const lastCreatedAgentRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (
       sidePanelMode !== 'terminal' ||
       !selectedAgent ||
       selectedAgent.tmuxSession ||
-      creatingSessionRef.current
+      creatingSessionRef.current ||
+      lastCreatedAgentRef.current === selectedAgent.id
     ) {
       return;
     }
 
     creatingSessionRef.current = true;
+    setIsCreatingAgentSession(true);
     const sessionName = `cc-agent-${selectedAgent.id}`;
 
     api.tmux.createSession(sessionName).then((created) => {
+      lastCreatedAgentRef.current = selectedAgent.id;
       const newSession: TerminalSession = {
         id: selectedAgent.id,
         name: created.name,
@@ -55,6 +60,7 @@ export function SidePanel() {
       );
     }).finally(() => {
       creatingSessionRef.current = false;
+      setIsCreatingAgentSession(false);
     });
   }, [sidePanelMode, selectedAgent]);
 
@@ -121,13 +127,15 @@ export function SidePanel() {
         </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-hidden">
         {sidePanelMode === 'detail' && selectedAgent && (
-          <ErrorBoundary>
-            <AgentDetail agent={selectedAgent} />
-          </ErrorBoundary>
+          <div className="h-full overflow-y-auto">
+            <ErrorBoundary>
+              <AgentDetail agent={selectedAgent} />
+            </ErrorBoundary>
+          </div>
         )}
-        {sidePanelMode === 'terminal' && selectedAgentId && (
+        {sidePanelMode === 'terminal' && selectedAgentId && !isCreatingAgentSession && (
           <ErrorBoundary>
             <TerminalPanel
               sessions={sessions}
@@ -138,14 +146,26 @@ export function SidePanel() {
             />
           </ErrorBoundary>
         )}
+        {sidePanelMode === 'terminal' && selectedAgentId && isCreatingAgentSession && (
+          <div className="flex h-full flex-col items-center justify-center gap-3 p-6">
+            <Terminal className="h-8 w-8 animate-pulse text-accent" />
+            <p className="text-sm text-text-secondary">Starting terminal session...</p>
+          </div>
+        )}
         {sidePanelMode === 'terminal' && !selectedAgentId && (
-          <div className="flex h-full items-center justify-center p-6">
-            <p className="text-sm text-text-secondary">No agent selected</p>
+          <div className="flex h-full flex-col items-center justify-center gap-3 p-6">
+            <Terminal className="h-10 w-10 text-text-tertiary" />
+            <div className="text-center">
+              <p className="text-sm font-medium text-text-primary">No agent selected</p>
+              <p className="mt-1 text-xs text-text-secondary">
+                Select an agent from the board to open its terminal
+              </p>
+            </div>
           </div>
         )}
         {sidePanelMode === 'detail' && !selectedAgent && (
           <div className="flex h-full items-center justify-center p-6">
-            <p className="text-sm text-text-secondary">Agent Detail View</p>
+            <p className="text-sm text-text-secondary">Select an agent to view details</p>
           </div>
         )}
       </div>

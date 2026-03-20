@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { toast } from 'sonner';
-import { TerminalTabs, type TerminalTab } from './terminal-tabs.js';
+import { Terminal, Plus } from 'lucide-react';
+import { TerminalTabs, type TerminalTab, type TabConnectionStatus } from './terminal-tabs.js';
 import { TerminalInstance } from './terminal-instance.js';
 import { cn } from '../../lib/cn.js';
 import { api } from '../../lib/api-client.js';
@@ -34,6 +35,7 @@ export function TerminalPanel({
 }: TerminalPanelProps) {
   const [localSessions, setLocalSessions] = useState<TerminalSession[]>([]);
   const [isCreating, setIsCreating] = useState(false);
+  const [connectionStatuses, setConnectionStatuses] = useState<Map<string, TabConnectionStatus>>(new Map());
   const prevSessionsRef = useRef(sessions);
 
   useEffect(() => {
@@ -54,6 +56,7 @@ export function TerminalPanel({
     name: s.name,
     sessionId: s.sessionId,
     isActive: s.sessionId === activeSessionId,
+    status: connectionStatuses.get(s.sessionId) ?? 'connecting',
   }));
 
   const [localActiveTabId, setLocalActiveTabId] = useState<string | null>(
@@ -83,6 +86,11 @@ export function TerminalPanel({
 
       onSessionClose(session.sessionId);
       setLocalSessions((prev) => prev.filter((s) => s.id !== tabId));
+      setConnectionStatuses((prev) => {
+        const next = new Map(prev);
+        next.delete(session.sessionId);
+        return next;
+      });
 
       const remaining = allSessions.filter((s) => s.id !== tabId);
       if (effectiveActiveTabId === tabId && remaining.length > 0) {
@@ -137,6 +145,7 @@ export function TerminalPanel({
         onTabSelect={handleTabSelect}
         onTabClose={handleTabClose}
         onNewTab={handleNewTab}
+        isCreating={isCreating}
       />
       <div className="flex-1 overflow-hidden">
         {activeSession ? (
@@ -146,8 +155,24 @@ export function TerminalPanel({
             wsUrl={activeSession.wsUrl}
           />
         ) : (
-          <div className="flex h-full items-center justify-center">
-            <p className="text-sm text-text-secondary">No active terminal session</p>
+          <div className="flex h-full flex-col items-center justify-center gap-4 p-6">
+            <Terminal className="h-10 w-10 text-text-tertiary" />
+            <div className="text-center">
+              <p className="text-sm font-medium text-text-primary">No terminal sessions</p>
+              <p className="mt-1 text-xs text-text-secondary">
+                Create a new terminal or start an agent to begin
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={handleNewTab}
+              disabled={isCreating}
+              className="flex items-center gap-2 rounded-md bg-accent px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-accent/90 disabled:opacity-50"
+              data-testid="terminal-empty-create"
+            >
+              <Plus className="h-4 w-4" />
+              {isCreating ? 'Creating...' : 'New Terminal'}
+            </button>
           </div>
         )}
       </div>

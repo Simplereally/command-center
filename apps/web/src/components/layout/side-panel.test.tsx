@@ -118,13 +118,13 @@ describe('SidePanel', () => {
     expect(screen.getByText('Selected Agent')).toBeInTheDocument();
   });
 
-  it('shows "Agent Detail View" when no agent selected in detail mode', () => {
+  it('shows placeholder text when no agent selected in detail mode', () => {
     mockUiState({ sidePanelMode: 'detail', selectedAgentId: null });
     mockAgentState(new Map());
 
     render(<SidePanel />);
 
-    expect(screen.getByText('Agent Detail View')).toBeInTheDocument();
+    expect(screen.getByText('Select an agent to view details')).toBeInTheDocument();
   });
 
   it('shows "No agent selected" in terminal mode without agent', () => {
@@ -137,7 +137,7 @@ describe('SidePanel', () => {
   });
 
   it('renders TerminalPanel in terminal mode with selected agent', () => {
-    const agent = makeAgent({ id: 'agent-1', name: 'Test Agent' });
+    const agent = makeAgent({ id: 'agent-1', name: 'Test Agent', tmuxSession: 'test-tmux-session' });
     mockUiState({ sidePanelMode: 'terminal', selectedAgentId: 'agent-1' });
     mockAgentState(new Map([['agent-1', agent]]));
 

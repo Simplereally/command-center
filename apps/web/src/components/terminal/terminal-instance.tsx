@@ -6,6 +6,7 @@ import type { TerminalMessage } from '@command-center/shared';
 
 const RECONNECT_MAX_ATTEMPTS = 5;
 const RECONNECT_BASE_DELAY_MS = 1000;
+const RECONNECT_MAX_DELAY_MS = 30000;
 
 interface XtermTerminal {
   write(data: string): void;
@@ -24,14 +25,20 @@ interface XtermAddon {
 interface Xterm {
   new (options?: {
     cursorBlink?: boolean;
+    cursorStyle?: 'bar' | 'block' | 'underline';
     fontSize?: number;
     fontFamily?: string;
     theme?: {
       background?: string;
       foreground?: string;
       cursor?: string;
+      cursorAccent?: string;
+      selectionBackground?: string;
+      selectionForeground?: string;
     };
     convertEol?: boolean;
+    scrollback?: number;
+    allowProposedApi?: boolean;
   }): XtermTerminal;
 }
 
@@ -57,23 +64,60 @@ export function TerminalInstance({ sessionId, wsUrl, className }: TerminalInstan
   const fitAddonRef = useRef<XtermAddon | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const wasReconnectingRef = useRef(false);
+  const resizeObserverRef = useRef<ResizeObserver | null>(null);
+  const mountedRef = useRef(true);
+  const hadConnectionRef = useRef(false);
 
   const [isConnected, setIsConnected] = useState(false);
   const [isReconnecting, setIsReconnecting] = useState(false);
   const [reconnectAttempt, setReconnectAttempt] = useState(0);
 
-  const connect = useCallback(() => {
+  const connectRef = useRef<(attempt?: number) => void>(() => {});
+
+  const scheduleReconnect = useCallback((attempt: number) => {
+    if (!mountedRef.current) return;
+    if (attempt >= RECONNECT_MAX_ATTEMPTS) {
+      setIsReconnecting(true);
+      setReconnectAttempt(RECONNECT_MAX_ATTEMPTS);
+      return;
+    }
+
+    setIsReconnecting(true);
+    setReconnectAttempt(attempt);
+
+    const delay = Math.min(
+      RECONNECT_BASE_DELAY_MS * Math.pow(2, attempt),
+      RECONNECT_MAX_DELAY_MS,
+    );
+    reconnectTimeoutRef.current = setTimeout(() => {
+      if (mountedRef.current) {
+        connectRef.current(attempt + 1);
+      }
+    }, delay);
+  }, []);
+
+  const connect = useCallback((attempt = 0) => {
+    if (!mountedRef.current) return;
     if (wsRef.current?.readyState === WebSocket.OPEN) {
       return;
+    }
+
+    if (wsRef.current) {
+      wsRef.current.onclose = null;
+      wsRef.current.onerror = null;
+      wsRef.current.onmessage = null;
+      wsRef.current.onopen = null;
+      wsRef.current.close();
+      wsRef.current = null;
     }
 
     try {
       const ws = new WebSocket(wsUrl);
 
       ws.onopen = () => {
-        const wasReconnecting = wasReconnectingRef.current;
-        wasReconnectingRef.current = false;
+        if (!mountedRef.current) { ws.close(); return; }
+        const wasReconnecting = hadConnectionRef.current && attempt > 0;
+        hadConnectionRef.current = true;
         setIsConnected(true);
         setIsReconnecting(false);
         setReconnectAttempt(0);
@@ -84,29 +128,56 @@ export function TerminalInstance({ sessionId, wsUrl, className }: TerminalInstan
 
       ws.onmessage = (event) => {
         try {
-          const message: TerminalMessage = JSON.parse(event.data);
-          if (message.type === 'terminal:output' && message.sessionId === sessionId) {
-            terminalRef.current?.write(message.data);
+          const message = JSON.parse(event.data as string) as TerminalMessage;
+          switch (message.type) {
+            case 'terminal:output':
+              if (message.sessionId === sessionId) {
+                terminalRef.current?.write(message.data);
+              }
+              break;
+            case 'terminal:exit':
+              terminalRef.current?.write(
+                `\r\n\x1b[90m[Process exited with code ${message.exitCode ?? 'unknown'}]\x1b[0m\r\n`,
+              );
+              break;
+            case 'terminal:error':
+              terminalRef.current?.write(
+                `\r\n\x1b[31m[Error: ${message.error}]\x1b[0m\r\n`,
+              );
+              break;
           }
         } catch {
-          terminalRef.current?.write(event.data);
+          if (typeof event.data === 'string') {
+            terminalRef.current?.write(event.data);
+          }
         }
       };
 
-      ws.onclose = () => {
+      ws.onclose = (event) => {
+        if (!mountedRef.current) return;
         setIsConnected(false);
         wsRef.current = null;
+
+        if (!event.wasClean && hadConnectionRef.current) {
+          scheduleReconnect(attempt);
+        }
       };
 
       ws.onerror = () => {
+        if (!mountedRef.current) return;
         setIsConnected(false);
       };
 
       wsRef.current = ws;
     } catch {
       toast.error('Failed to connect to terminal');
+      if (hadConnectionRef.current) {
+        scheduleReconnect(attempt);
+      }
     }
-  }, [sessionId, wsUrl]);
+  }, [sessionId, wsUrl, scheduleReconnect]);
+
+  connectRef.current = connect;
 
   const disconnect = useCallback(() => {
     if (reconnectTimeoutRef.current) {
@@ -114,6 +185,10 @@ export function TerminalInstance({ sessionId, wsUrl, className }: TerminalInstan
       reconnectTimeoutRef.current = null;
     }
     if (wsRef.current) {
+      wsRef.current.onclose = null;
+      wsRef.current.onerror = null;
+      wsRef.current.onmessage = null;
+      wsRef.current.onopen = null;
       wsRef.current.close();
       wsRef.current = null;
     }
@@ -123,9 +198,13 @@ export function TerminalInstance({ sessionId, wsUrl, className }: TerminalInstan
 
   const handleResize = useCallback(() => {
     if (fitAddonRef.current && terminalRef.current) {
-      fitAddonRef.current.fit();
+      try {
+        fitAddonRef.current.fit();
+      } catch {
+        return;
+      }
       const { cols, rows } = terminalRef.current;
-      if (wsRef.current?.readyState === WebSocket.OPEN) {
+      if (wsRef.current?.readyState === WebSocket.OPEN && cols > 0 && rows > 0) {
         wsRef.current.send(
           JSON.stringify({
             type: 'terminal:resize',
@@ -139,7 +218,8 @@ export function TerminalInstance({ sessionId, wsUrl, className }: TerminalInstan
   }, [sessionId]);
 
   useEffect(() => {
-    let mounted = true;
+    mountedRef.current = true;
+    hadConnectionRef.current = false;
 
     const initTerminal = async () => {
       if (!containerRef.current) return;
@@ -150,21 +230,25 @@ export function TerminalInstance({ sessionId, wsUrl, className }: TerminalInstan
           import('@xterm/addon-fit'),
         ]);
 
-        if (!mounted || !containerRef.current) return;
+        if (!mountedRef.current || !containerRef.current) return;
 
         const Terminal = xtermModule.Terminal as unknown as Xterm;
         const FitAddon = fitAddonModule.FitAddon as unknown as XtermFitAddon;
 
         const terminal = new Terminal({
           cursorBlink: true,
+          cursorStyle: 'bar',
           fontSize: 14,
           fontFamily: '"Geist Mono", "JetBrains Mono", "Fira Code", monospace',
           theme: {
-            background: '#0d1117',
-            foreground: '#c9d1d9',
-            cursor: '#c9d1d9',
+            background: '#0a0a0a',
+            foreground: '#f2f2f2',
+            cursor: '#f2f2f2',
+            cursorAccent: '#0a0a0a',
+            selectionBackground: 'rgba(59, 130, 246, 0.3)',
           },
           convertEol: true,
+          scrollback: 5000,
         });
 
         const fitAddon = new FitAddon();
@@ -187,15 +271,16 @@ export function TerminalInstance({ sessionId, wsUrl, className }: TerminalInstan
             );
           }
         });
+
         const resizeObserver = new ResizeObserver(() => {
-          handleResize();
+          requestAnimationFrame(() => {
+            handleResize();
+          });
         });
         resizeObserver.observe(containerRef.current);
-        connect();
+        resizeObserverRef.current = resizeObserver;
 
-        return () => {
-          resizeObserver.disconnect();
-        };
+        connect();
       } catch {
         toast.error(
           'Failed to initialize terminal. Please install @xterm/xterm and @xterm/addon-fit.',
@@ -206,34 +291,26 @@ export function TerminalInstance({ sessionId, wsUrl, className }: TerminalInstan
     initTerminal();
 
     return () => {
-      mounted = false;
+      mountedRef.current = false;
       disconnect();
+      resizeObserverRef.current?.disconnect();
+      resizeObserverRef.current = null;
       terminalRef.current?.dispose();
       terminalRef.current = null;
+      fitAddonRef.current = null;
     };
   }, [sessionId, wsUrl, connect, disconnect, handleResize]);
 
   const handleRetry = useCallback(() => {
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current);
+      reconnectTimeoutRef.current = null;
+    }
     setReconnectAttempt(0);
     setIsReconnecting(false);
-    connect();
+    hadConnectionRef.current = true;
+    connect(0);
   }, [connect]);
-
-  useEffect(() => {
-    if (!isConnected && !isReconnecting && reconnectAttempt === 0) {
-      return;
-    }
-
-    if (!isConnected && reconnectAttempt > 0 && reconnectAttempt < RECONNECT_MAX_ATTEMPTS) {
-      wasReconnectingRef.current = true;
-      setIsReconnecting(true);
-      const delay = RECONNECT_BASE_DELAY_MS * Math.pow(2, reconnectAttempt - 1);
-      reconnectTimeoutRef.current = setTimeout(() => {
-        setReconnectAttempt((prev) => prev + 1);
-        connect();
-      }, delay);
-    }
-  }, [isConnected, isReconnecting, reconnectAttempt, connect]);
 
   return (
     <div
