@@ -54,7 +54,9 @@ describe('TerminalPanel', () => {
 
   it('shows empty state when no sessions', () => {
     render(<TerminalPanel {...defaultProps} sessions={[]} activeSessionId={null} />);
-    expect(screen.getByText('No active terminal session')).toBeInTheDocument();
+    expect(screen.getByText('No terminal sessions')).toBeInTheDocument();
+    expect(screen.getByText('Create a new terminal or start an agent to begin')).toBeInTheDocument();
+    expect(screen.getByTestId('terminal-empty-create')).toBeInTheDocument();
   });
 
   it('has correct panel structure with tabs and content area', () => {

@@ -1,4 +1,6 @@
 import { Hono } from 'hono';
+import { zValidator } from '@hono/zod-validator';
+import { createAgentSchema, updateAgentSchema, moveAgentSchema } from '@command-center/shared';
 import * as agentService from '../services/agent-service.js';
 
 const agents = new Hono();
@@ -11,23 +13,8 @@ agents.get('/agents', async (c) => {
   return c.json({ data });
 });
 
-agents.post('/agents', async (c) => {
-  const body = await c.req.json();
-  if (!body.name || !body.boardId || !body.swimlaneId) {
-    return c.json(
-      { error: { code: 'VALIDATION_ERROR', message: 'name, boardId, and swimlaneId are required' } },
-      400,
-    );
-  }
-  const data = await agentService.createAgent({
-    name: body.name,
-    boardId: body.boardId,
-    swimlaneId: body.swimlaneId,
-    model: body.model,
-    command: body.command,
-    workingDir: body.workingDir,
-    envVars: body.envVars,
-  });
+agents.post('/agents', zValidator('json', createAgentSchema), async (c) => {
+  const data = await agentService.createAgent(c.req.valid('json'));
   return c.json({ data }, 201);
 });
 
@@ -36,15 +23,8 @@ agents.get('/agents/:agentId', async (c) => {
   return c.json({ data });
 });
 
-agents.put('/agents/:agentId', async (c) => {
-  const body = await c.req.json();
-  const data = await agentService.updateAgent(c.req.param('agentId'), {
-    name: body.name,
-    model: body.model,
-    command: body.command,
-    workingDir: body.workingDir,
-    envVars: body.envVars,
-  });
+agents.put('/agents/:agentId', zValidator('json', updateAgentSchema), async (c) => {
+  const data = await agentService.updateAgent(c.req.param('agentId'), c.req.valid('json'));
   return c.json({ data });
 });
 
@@ -68,15 +48,9 @@ agents.post('/agents/:agentId/restart', async (c) => {
   return c.json({ data });
 });
 
-agents.post('/agents/:agentId/move', async (c) => {
-  const body = await c.req.json();
-  if (!body.swimlaneId || typeof body.position !== 'number') {
-    return c.json(
-      { error: { code: 'VALIDATION_ERROR', message: 'swimlaneId and position are required' } },
-      400,
-    );
-  }
-  const data = await agentService.moveAgent(c.req.param('agentId'), body.swimlaneId, body.position);
+agents.post('/agents/:agentId/move', zValidator('json', moveAgentSchema), async (c) => {
+  const body = c.req.valid('json');
+  const data = await agentService.moveAgent(c.req.param('agentId'), body.swimlaneId, body.position ?? 0);
   return c.json({ data });
 });
 

@@ -8,6 +8,9 @@ import {
   type AgentStatus,
 } from '@command-center/shared';
 import { NotFoundError, ValidationError, ConflictError } from '../lib/errors.js';
+import { TmuxClient } from '@command-center/tmux';
+
+const tmuxClient = new TmuxClient();
 
 interface CreateAgentInput {
   name: string;
@@ -163,11 +166,44 @@ export async function startAgent(id: string) {
     .set({ status: 'starting', updatedAt: new Date() })
     .where(eq(agents.id, id));
 
+  let sessionName: string | null = null;
+
+  if (agent.command) {
+    sessionName = `cc-agent-${id}`.slice(0, 128);
+    try {
+      const createOpts: { startDir?: string } = {};
+      if (agent.workingDir) {
+        createOpts.startDir = agent.workingDir;
+      }
+      await tmuxClient.createSession(sessionName, undefined, createOpts);
+
+      const envVars = (agent.envVars ?? {}) as Record<string, string>;
+      for (const [key, value] of Object.entries(envVars)) {
+        await tmuxClient.sendKeys(sessionName, `export ${key}=${JSON.stringify(value)}`);
+      }
+
+      await tmuxClient.sendKeys(sessionName, agent.command);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const [errored] = await db
+        .update(agents)
+        .set({
+          status: 'error',
+          errorMessage,
+          updatedAt: new Date(),
+        })
+        .where(eq(agents.id, id))
+        .returning();
+      return errored;
+    }
+  }
+
   const [updated] = await db
     .update(agents)
     .set({
       status: 'running',
       startedAt: new Date(),
+      ...(sessionName && { tmuxSession: sessionName }),
       updatedAt: new Date(),
     })
     .where(eq(agents.id, id))
@@ -190,11 +226,21 @@ export async function stopAgent(id: string) {
     .set({ status: 'stopping', updatedAt: new Date() })
     .where(eq(agents.id, id));
 
+  if (agent.tmuxSession) {
+    try {
+      await tmuxClient.killSession(agent.tmuxSession);
+    } catch {
+      // Session may already be dead — ignore
+    }
+  }
+
   const [updated] = await db
     .update(agents)
     .set({
       status: 'stopped',
       stoppedAt: new Date(),
+      tmuxSession: null,
+      pid: null,
       updatedAt: new Date(),
     })
     .where(eq(agents.id, id))

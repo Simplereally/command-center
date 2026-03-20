@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router';
 import { useUiStore } from '../stores/ui-store.js';
 import { useAgentStore } from '../stores/agent-store.js';
 import { useBoardStore } from '../stores/board-store.js';
+import { topModal } from '../lib/modal-stack.js';
 import { AgentStatus } from '@command-center/shared';
 
 const ACTIVE_STATUSES = new Set<string>([
@@ -15,6 +16,14 @@ function isInputElement(target: EventTarget | null): boolean {
   if (!target || !(target instanceof HTMLElement)) return false;
   const tag = target.tagName.toLowerCase();
   return tag === 'input' || tag === 'textarea' || tag === 'select' || target.isContentEditable;
+}
+
+export function scrollAgentIntoView(agentId: string): void {
+  requestAnimationFrame(() => {
+    document
+      .querySelector(`[data-testid="agent-card-${agentId}"]`)
+      ?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  });
 }
 
 export function useKeyboardShortcuts(): void {
@@ -64,9 +73,11 @@ export function useKeyboardShortcuts(): void {
       }
 
       if (key === 'Escape') {
+        if (topModal()) {
+          return;
+        }
         event.preventDefault();
         useUiStore.getState().closeSidePanel();
-        useUiStore.getState().closeCreateAgentDialog();
         return;
       }
 
@@ -126,6 +137,7 @@ export function useKeyboardShortcuts(): void {
               if (agent) {
                 useUiStore.getState().selectAgent(agent.id);
                 useUiStore.getState().setSelectedCardIndex(newSwimlane.id, cardIndex);
+                scrollAgentIntoView(agent.id);
               }
             }
           }
@@ -150,6 +162,7 @@ export function useKeyboardShortcuts(): void {
               if (agent) {
                 useUiStore.getState().selectAgent(agent.id);
                 useUiStore.getState().setSelectedCardIndex(newSwimlane.id, cardIndex);
+                scrollAgentIntoView(agent.id);
               }
             }
           }
@@ -171,6 +184,7 @@ export function useKeyboardShortcuts(): void {
               const agent = agentsInLane[newCardIndex];
               if (agent) {
                 useUiStore.getState().selectAgent(agent.id);
+                scrollAgentIntoView(agent.id);
               }
             }
           }
@@ -192,6 +206,7 @@ export function useKeyboardShortcuts(): void {
               const agent = agentsInLane[newCardIndex];
               if (agent) {
                 useUiStore.getState().selectAgent(agent.id);
+                scrollAgentIntoView(agent.id);
               }
             }
           }

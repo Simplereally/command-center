@@ -13,8 +13,8 @@ const mockFetchSwimlanes = vi.fn().mockResolvedValue(undefined);
 const mockFetchAgents = vi.fn().mockResolvedValue(undefined);
 const mockFetchLatestLogs = vi.fn().mockResolvedValue(undefined);
 
-vi.mock('../../stores/board-store.js', () => ({
-  useBoardStore: (selector: (s: Record<string, unknown>) => unknown) => {
+vi.mock('../../stores/board-store.js', () => {
+  const storeMock = (selector: (s: Record<string, unknown>) => unknown) => {
     const state = {
       swimlanes: mockSwimlanes,
       loading: false,
@@ -22,11 +22,15 @@ vi.mock('../../stores/board-store.js', () => ({
       fetchBoard: mockFetchBoard,
     };
     return selector(state);
-  },
-}));
+  };
+  storeMock.getState = () => ({
+    clearSwimlanes: vi.fn(),
+  });
+  return { useBoardStore: storeMock };
+});
 
-vi.mock('../../stores/agent-store.js', () => ({
-  useAgentStore: (selector: (s: Record<string, unknown>) => unknown) => {
+vi.mock('../../stores/agent-store.js', () => {
+  const storeMock = (selector: (s: Record<string, unknown>) => unknown) => {
     const state = {
       agents: mockAgents,
       logs: mockLogs,
@@ -37,17 +41,31 @@ vi.mock('../../stores/agent-store.js', () => ({
       commitMove: mockCommitMove,
     };
     return selector(state);
-  },
-}));
+  };
+  storeMock.getState = () => ({
+    fetchAgents: mockFetchAgents,
+    clearAgents: vi.fn(),
+  });
+  return { useAgentStore: storeMock };
+});
 
-vi.mock('../../stores/ui-store.js', () => ({
-  useUiStore: (selector: (s: Record<string, unknown>) => unknown) => {
+vi.mock('../../stores/ui-store.js', () => {
+  const storeMock = (selector: (s: Record<string, unknown>) => unknown) => {
     const state = {
       collapsedLanes: new Set<string>(),
+      searchQuery: '',
+      statusFilters: new Set<string>(),
+      setSearchQuery: vi.fn(),
+      toggleStatusFilter: vi.fn(),
+      clearFilters: vi.fn(),
     };
     return selector(state);
-  },
-}));
+  };
+  storeMock.getState = () => ({
+    openCreateAgentDialog: vi.fn(),
+  });
+  return { useUiStore: storeMock };
+});
 
 import { KanbanBoard } from './kanban-board.js';
 

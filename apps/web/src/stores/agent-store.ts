@@ -24,6 +24,8 @@ export interface AgentState {
 
   fetchLatestLogs: (agentId: string) => Promise<void>;
 
+  clearAgents: () => void;
+
   getAgentsByLane: (swimlaneId: string) => AgentResponse[];
   getAgentById: (id: string) => AgentResponse | undefined;
 }
@@ -173,13 +175,26 @@ export const useAgentStore = create<AgentState>()(
 
     fetchLatestLogs: async (agentId: string) => {
       try {
-        const logs = await api.logs.history(agentId, { limit: 3 });
+        const raw = await api.logs.history(agentId, { limit: 3 });
+        const logs: LogResponse[] = raw.map((entry) => {
+          const rec = entry as unknown as Record<string, unknown>;
+          const content = typeof rec.content === 'string' ? rec.content : undefined;
+          const message = typeof rec.message === 'string' ? rec.message : undefined;
+          return { ...entry, content: content ?? message ?? '' };
+        });
         set((state) => {
           state.logs.set(agentId, logs);
         });
       } catch {
         // Silently fail - logs are non-critical
       }
+    },
+
+    clearAgents: () => {
+      set((state) => {
+        state.agents = new Map();
+        state.loading = true;
+      });
     },
 
     getAgentsByLane: (swimlaneId: string) => {

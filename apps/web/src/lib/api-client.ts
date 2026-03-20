@@ -22,6 +22,13 @@ export class ApiError extends Error {
   }
 }
 
+export interface TmuxSessionInfo {
+  id: string;
+  name: string;
+  createdAt: string;
+  attached: boolean;
+}
+
 interface ApiResponse<T> {
   data: T;
 }
@@ -176,6 +183,24 @@ class ApiClient {
     },
 
     streamUrl: (agentId: string): string => `${this.baseUrl}/agents/${agentId}/logs`,
+  };
+
+  // ── Tmux ──────────────────────────────────────
+
+  readonly tmux = {
+    listSessions: (): Promise<TmuxSessionInfo[]> =>
+      this.request<TmuxSessionInfo[]>('/tmux/sessions'),
+
+    createSession: (name: string, command?: string): Promise<TmuxSessionInfo> =>
+      this.request<TmuxSessionInfo>('/tmux/sessions', {
+        method: 'POST',
+        body: JSON.stringify({ name, ...(command !== undefined && { command }) }),
+      }),
+
+    deleteSession: (name: string): Promise<{ success: boolean }> =>
+      this.request<{ success: boolean }>(`/tmux/sessions/${encodeURIComponent(name)}`, {
+        method: 'DELETE',
+      }),
   };
 
   // ── Metrics ─────────────────────────────────────

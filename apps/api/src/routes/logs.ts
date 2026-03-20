@@ -1,5 +1,7 @@
 import { Hono } from 'hono';
 import { streamSSE } from 'hono/streaming';
+import { zValidator } from '@hono/zod-validator';
+import { createLogSchema } from '@command-center/shared';
 import * as logService from '../services/log-service.js';
 
 const logs = new Hono();
@@ -83,15 +85,9 @@ logs.delete('/agents/:agentId/logs/:logId', async (c) => {
   return c.json({ data: { success: true } });
 });
 
-logs.post('/agents/:agentId/logs', async (c) => {
+logs.post('/agents/:agentId/logs', zValidator('json', createLogSchema), async (c) => {
   const agentId = c.req.param('agentId');
-  const body = await c.req.json();
-  if (!body.level || !body.content) {
-    return c.json(
-      { error: { code: 'VALIDATION_ERROR', message: 'level and content are required' } },
-      400,
-    );
-  }
+  const body = c.req.valid('json');
   const data = await logService.createLog({ agentId, level: body.level, content: body.content });
   return c.json({ data }, 201);
 });

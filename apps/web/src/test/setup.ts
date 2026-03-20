@@ -37,6 +37,8 @@ globalThis.ResizeObserver = MockResizeObserver;
 globalThis.IntersectionObserver =
   MockIntersectionObserver as unknown as typeof IntersectionObserver;
 
+Element.prototype.scrollIntoView = vi.fn();
+
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
   value: (query: string) => ({

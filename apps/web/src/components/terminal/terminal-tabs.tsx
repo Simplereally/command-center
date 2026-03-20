@@ -1,11 +1,14 @@
-import { X, Plus } from 'lucide-react';
+import { X, Plus, Loader2 } from 'lucide-react';
 import { cn } from '../../lib/cn.js';
+
+export type TabConnectionStatus = 'connected' | 'disconnected' | 'connecting';
 
 export interface TerminalTab {
   id: string;
   name: string;
   sessionId: string;
   isActive?: boolean;
+  status?: TabConnectionStatus;
 }
 
 export interface TerminalTabsProps {
@@ -14,6 +17,7 @@ export interface TerminalTabsProps {
   onTabSelect: (tabId: string) => void;
   onTabClose: (tabId: string) => void;
   onNewTab: () => void;
+  isCreating?: boolean;
   className?: string;
 }
 
@@ -23,6 +27,7 @@ export function TerminalTabs({
   onTabSelect,
   onTabClose,
   onNewTab,
+  isCreating = false,
   className,
 }: TerminalTabsProps) {
   return (
@@ -47,11 +52,23 @@ export function TerminalTabs({
             onClick={() => onTabSelect(tab.id)}
             className={cn(
               'group flex h-8 min-w-[120px] max-w-[200px] items-center gap-2 rounded-t-md px-3 text-sm transition-colors',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
               tab.id === activeTabId
                 ? 'border-b-2 border-accent bg-surface-hover text-text-primary'
                 : 'text-text-secondary hover:bg-surface-hover hover:text-text-primary',
             )}
           >
+            {tab.status && (
+              <span
+                className={cn(
+                  'h-2 w-2 flex-shrink-0 rounded-full',
+                  tab.status === 'connected' && 'bg-[var(--status-running,hsl(142_71%_45%))]',
+                  tab.status === 'disconnected' && 'bg-[var(--status-error,hsl(0_62%_55%))]',
+                  tab.status === 'connecting' && 'bg-[var(--status-starting,hsl(217_91%_60%))] animate-pulse',
+                )}
+                aria-label={`Status: ${tab.status}`}
+              />
+            )}
             <span className="truncate">{tab.name}</span>
             <span
               data-testid={`terminal-tab-close-${tab.id}`}
@@ -78,11 +95,21 @@ export function TerminalTabs({
       <button
         type="button"
         onClick={onNewTab}
-        className="flex h-7 w-7 items-center justify-center rounded-md text-text-tertiary transition-colors hover:bg-surface-hover hover:text-text-primary"
-        aria-label="New terminal"
+        disabled={isCreating}
+        className={cn(
+          'flex h-7 w-7 items-center justify-center rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+          isCreating
+            ? 'cursor-not-allowed text-text-tertiary/50'
+            : 'text-text-tertiary hover:bg-surface-hover hover:text-text-primary',
+        )}
+        aria-label={isCreating ? 'Creating terminal...' : 'New terminal'}
         data-testid="terminal-new-tab"
       >
-        <Plus className="h-4 w-4" />
+        {isCreating ? (
+          <Loader2 className="h-4 w-4 animate-spin" />
+        ) : (
+          <Plus className="h-4 w-4" />
+        )}
       </button>
     </div>
   );

@@ -3,6 +3,11 @@ import { immer } from 'zustand/middleware/immer';
 import type { BoardResponse, SwimlaneResponse } from '@command-center/shared';
 import { api } from '../lib/api-client.js';
 
+export interface DeleteBoardResult {
+  wasCurrentBoard: boolean;
+  nextBoard: BoardResponse | null;
+}
+
 export interface BoardState {
   boards: BoardResponse[];
   currentBoard: BoardResponse | null;
@@ -15,8 +20,9 @@ export interface BoardState {
   fetchSwimlanes: (boardId: string) => Promise<void>;
   createBoard: (name: string) => Promise<BoardResponse>;
   updateBoard: (id: string, data: { name?: string }) => Promise<BoardResponse>;
-  deleteBoard: (id: string) => Promise<void>;
+  deleteBoard: (id: string) => Promise<DeleteBoardResult>;
   setCurrentBoard: (board: BoardResponse | null) => void;
+  clearSwimlanes: () => void;
 
   getSwimlaneBySlug: (slug: string) => SwimlaneResponse | undefined;
   getSwimlaneById: (id: string) => SwimlaneResponse | undefined;
@@ -135,20 +141,24 @@ export const useBoardStore = create<BoardState>()(
       }
     },
 
-    deleteBoard: async (id: string) => {
+    deleteBoard: async (id: string): Promise<DeleteBoardResult> => {
       const boardIndex = get().boards.findIndex((b) => b.id === id);
       const boardToDelete = boardIndex !== -1 ? get().boards[boardIndex] : null;
       const wasCurrentBoard = get().currentBoard?.id === id;
 
+      const remainingBoards = get().boards.filter((b) => b.id !== id);
+      const nextBoard = wasCurrentBoard ? (remainingBoards[0] ?? null) : null;
+
       set((state) => {
-        state.boards = state.boards.filter((b) => b.id !== id);
+        state.boards = remainingBoards;
         if (wasCurrentBoard) {
-          state.currentBoard = null;
+          state.currentBoard = nextBoard;
         }
       });
 
       try {
         await api.boards.delete(id);
+        return { wasCurrentBoard, nextBoard };
       } catch (err) {
         set((state) => {
           if (boardToDelete) {
@@ -165,6 +175,13 @@ export const useBoardStore = create<BoardState>()(
     setCurrentBoard: (board: BoardResponse | null) => {
       set((state) => {
         state.currentBoard = board;
+      });
+    },
+
+    clearSwimlanes: () => {
+      set((state) => {
+        state.swimlanes = [];
+        state.loading = true;
       });
     },
 

@@ -7,6 +7,22 @@ vi.mock('../../stores/agent-store.js', () => ({
   useAgentStore: vi.fn(),
 }));
 
+vi.mock('../../stores/ui-store.js', () => ({
+  useUiStore: (selector: (s: Record<string, unknown>) => unknown) =>
+    selector({
+      selectedAgentId: null,
+      commandPaletteOpen: false,
+    }),
+}));
+
+vi.mock('../../lib/api-client.js', () => ({
+  api: {
+    tmux: {
+      listSessions: vi.fn().mockResolvedValue([]),
+    },
+  },
+}));
+
 function makeAgent(overrides: Partial<AgentResponse> = {}): AgentResponse {
   return {
     id: 'agent-1',

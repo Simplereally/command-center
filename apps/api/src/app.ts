@@ -1,8 +1,10 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { createMiddleware } from 'hono/factory';
+import { createNodeWebSocket } from '@hono/node-ws';
 import { nanoid } from 'nanoid';
 import { AppError } from './lib/errors.js';
+import { env } from './lib/env.js';
 import { logger } from './lib/logger.js';
 import health from './routes/health.js';
 import boards from './routes/boards.js';
@@ -10,7 +12,7 @@ import swimlanes from './routes/swimlanes.js';
 import agents from './routes/agents.js';
 import logs from './routes/logs.js';
 import metrics from './routes/metrics.js';
-import tmux from './routes/tmux.js';
+import tmux, { registerTerminalWebSocket } from './routes/tmux.js';
 
 type Variables = {
   requestId: string;
@@ -23,19 +25,26 @@ const requestIdMiddleware = createMiddleware<{ Variables: Variables }>(async (c,
   await next();
 });
 
+export let injectWebSocket: ReturnType<typeof createNodeWebSocket>['injectWebSocket'];
+
 export function createApp(): Hono<{ Variables: Variables }> {
   const app = new Hono<{ Variables: Variables }>();
+
+  const nodeWs = createNodeWebSocket({ app });
+  injectWebSocket = nodeWs.injectWebSocket;
 
   app.use(
     '*',
     cors({
-      origin: 'http://localhost:5173',
+      origin: env.CORS_ORIGINS?.split(',') ?? ['http://localhost:5173'],
       allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
       allowHeaders: ['Content-Type', 'Authorization', 'X-Request-ID'],
     }),
   );
 
   app.use('*', requestIdMiddleware);
+
+  registerTerminalWebSocket(nodeWs.upgradeWebSocket);
 
   const api = new Hono<{ Variables: Variables }>();
   api.route('/', health);

@@ -4,6 +4,14 @@ export { AgentStatus, VALID_TRANSITIONS, canTransition } from './constants/agent
 
 export { SWIMLANE_STATUS_MAP, SWIMLANE_DEFINITIONS } from './constants/swimlane-defaults.js';
 
+export {
+  PROVIDERS,
+  getProviderById,
+  getProviderForModel,
+} from './constants/providers.js';
+
+export type { AgentProvider, AgentModel, AuthMethod } from './constants/providers.js';
+
 // ── Schemas ──────────────────────────────────────────────────────────────────
 
 export {
@@ -21,7 +29,7 @@ export {
   createSwimlaneSchema,
 } from './schemas/swimlane.js';
 
-export { logResponseSchema } from './schemas/log.js';
+export { createLogSchema, logResponseSchema } from './schemas/log.js';
 
 export { metricResponseSchema } from './schemas/metric.js';
 
@@ -38,6 +46,7 @@ export type {
   SwimlaneResponse,
   UpdateSwimlane,
   CreateSwimlane,
+  CreateLog,
   LogLevel,
   LogResponse,
   MetricResponse,

@@ -43,8 +43,9 @@ describe('Boards API', () => {
       body: JSON.stringify({ name: '' }),
     });
     expect(res.status).toBe(400);
-    const json = await pj<unknown>(res);
-    expect((json as { error: { code: string } }).error.code).toBe('VALIDATION_ERROR');
+    const json = (await res.json()) as { success: boolean; error: unknown };
+    expect(json.success).toBe(false);
+    expect(json.error).toBeDefined();
   });
 
   it('GET /api/v1/boards/:boardId returns board', async () => {

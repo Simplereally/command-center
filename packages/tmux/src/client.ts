@@ -63,9 +63,12 @@ export class TmuxClient {
   /**
    * Create a new detached tmux session.
    */
-  async createSession(name: string, command?: string): Promise<TmuxSession> {
+  async createSession(name: string, command?: string, options?: { startDir?: string }): Promise<TmuxSession> {
     const base = this.buildBaseCommand();
     let cmd = `${base} new-session -d -s ${name}`;
+    if (options?.startDir) {
+      cmd += ` -c ${options.startDir}`;
+    }
     if (command) {
       cmd += ` ${command}`;
     }
@@ -92,7 +95,8 @@ export class TmuxClient {
    * Send keys to a tmux session, followed by Enter.
    */
   async sendKeys(sessionId: string, keys: string): Promise<void> {
-    const cmd = `${this.buildBaseCommand()} send-keys -t ${sessionId} ${keys} Enter`;
+    const escapedKeys = keys.replace(/'/g, "'\\''");
+    const cmd = `${this.buildBaseCommand()} send-keys -t ${sessionId} '${escapedKeys}' Enter`;
     await this.exec(cmd);
   }
 

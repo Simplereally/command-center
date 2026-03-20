@@ -1,6 +1,12 @@
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import { enableMapSet } from 'immer';
+import {
+  pushModal as pushModalStack,
+  popModal as popModalStack,
+  topModal as topModalStack,
+  getModalStack,
+} from '../lib/modal-stack.js';
 
 enableMapSet();
 
@@ -17,6 +23,9 @@ export interface UiState {
   createAgentDialogOpen: boolean;
   selectedSwimlaneIndex: number;
   selectedCardIndexByLane: Map<string, number>;
+  modalStack: string[];
+  searchQuery: string;
+  statusFilters: Set<string>;
 
   openDetailPanel: (agentId: string) => void;
   openTerminalPanel: (agentId: string) => void;
@@ -33,6 +42,12 @@ export interface UiState {
   closeCreateAgentDialog: () => void;
   setSelectedSwimlaneIndex: (index: number) => void;
   setSelectedCardIndex: (swimlaneId: string, index: number) => void;
+  setSearchQuery: (query: string) => void;
+  toggleStatusFilter: (status: string) => void;
+  clearFilters: () => void;
+  pushModal: (id: string) => void;
+  popModal: () => string | undefined;
+  topModal: () => string | undefined;
 }
 
 export const useUiStore = create<UiState>()(
@@ -46,6 +61,9 @@ export const useUiStore = create<UiState>()(
     createAgentDialogOpen: false,
     selectedSwimlaneIndex: 0,
     selectedCardIndexByLane: new Map<string, number>(),
+    modalStack: [...getModalStack()],
+    searchQuery: '',
+    statusFilters: new Set<string>(),
 
     openDetailPanel: (agentId: string) => {
       set((state) => {
@@ -139,6 +157,48 @@ export const useUiStore = create<UiState>()(
       set((state) => {
         state.selectedCardIndexByLane.set(swimlaneId, index);
       });
+    },
+
+    setSearchQuery: (query: string) => {
+      set((state) => {
+        state.searchQuery = query;
+      });
+    },
+
+    toggleStatusFilter: (status: string) => {
+      set((state) => {
+        if (state.statusFilters.has(status)) {
+          state.statusFilters.delete(status);
+        } else {
+          state.statusFilters.add(status);
+        }
+      });
+    },
+
+    clearFilters: () => {
+      set((state) => {
+        state.searchQuery = '';
+        state.statusFilters = new Set<string>();
+      });
+    },
+
+    pushModal: (id: string) => {
+      pushModalStack(id);
+      set((state) => {
+        state.modalStack = [...getModalStack()];
+      });
+    },
+
+    popModal: () => {
+      const top = popModalStack();
+      set((state) => {
+        state.modalStack = [...getModalStack()];
+      });
+      return top;
+    },
+
+    topModal: () => {
+      return topModalStack();
     },
   })),
 );

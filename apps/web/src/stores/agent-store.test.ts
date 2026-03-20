@@ -34,7 +34,7 @@ const { makeAgent, mockAgents, mockLogsHistory } = vi.hoisted(() => {
     id: 'log-1',
     agentId: 'agent-1',
     level: 'info',
-    message: 'Agent started',
+    content: 'Agent started',
     timestamp: '2024-01-01T00:00:00Z',
     ...overrides,
   });
@@ -42,9 +42,9 @@ const { makeAgent, mockAgents, mockLogsHistory } = vi.hoisted(() => {
   const mockLogsHistory = vi
     .fn()
     .mockResolvedValue([
-      makeLog({ id: 'log-1', message: 'Starting process' }),
-      makeLog({ id: 'log-2', message: 'Processing data' }),
-      makeLog({ id: 'log-3', message: 'Task complete' }),
+      makeLog({ id: 'log-1', content: 'Starting process' }),
+      makeLog({ id: 'log-2', content: 'Processing data' }),
+      makeLog({ id: 'log-3', content: 'Task complete' }),
     ]);
 
   return { makeAgent, mockAgents, makeLog, mockLogsHistory };
@@ -129,7 +129,7 @@ describe('useAgentStore', () => {
       expect(mockLogsHistory).toHaveBeenCalledWith('agent-1', { limit: 3 });
       const logs = useAgentStore.getState().logs.get('agent-1');
       expect(logs).toHaveLength(3);
-      expect(logs?.[2]?.message).toBe('Task complete');
+      expect(logs?.[2]?.content).toBe('Task complete');
     });
 
     it('stores logs keyed by agentId', async () => {

@@ -5,7 +5,11 @@ import { useBoardStore } from '../../stores/board-store.js';
 import { useAgentStore } from '../../stores/agent-store.js';
 
 vi.mock('../../stores/ui-store.js', () => ({
-  useUiStore: vi.fn(),
+  useUiStore: Object.assign(vi.fn(), {
+    getState: () => ({
+      openCommandPalette: vi.fn(),
+    }),
+  }),
 }));
 
 vi.mock('../../stores/board-store.js', () => ({
@@ -16,20 +20,34 @@ vi.mock('../../stores/agent-store.js', () => ({
   useAgentStore: vi.fn(),
 }));
 
+vi.mock('../../lib/api-client.js', () => ({
+  api: {
+    tmux: {
+      listSessions: vi.fn().mockResolvedValue([]),
+    },
+  },
+}));
+
 function setupMocks(overrides: Record<string, unknown> = {}) {
   vi.mocked(useUiStore).mockImplementation(((selector: (s: Record<string, unknown>) => unknown) =>
     selector({
+      viewMode: overrides.viewMode ?? 'board',
       sidePanelMode: overrides.sidePanelMode ?? 'closed',
       sidePanelWidth: 40,
-      selectedAgentId: null,
+      selectedAgentId: overrides.selectedAgentId ?? null,
       closeSidePanel: vi.fn(),
+      commandPaletteOpen: false,
+      closeCommandPalette: vi.fn(),
     })) as never);
 
+  const currentBoard = { id: 'board-1', name: 'Test Board', createdAt: '', updatedAt: '' };
   vi.mocked(useBoardStore).mockImplementation(((
     selector: (s: Record<string, unknown>) => unknown,
   ) =>
     selector({
-      currentBoard: { id: 'board-1', name: 'Test Board', createdAt: '', updatedAt: '' },
+      currentBoard,
+      boards: [currentBoard],
+      fetchBoards: vi.fn(),
       swimlanes: [
         {
           id: 'lane-1',
@@ -104,5 +122,31 @@ describe('AppShell', () => {
     );
 
     expect(screen.queryByTestId('side-panel')).not.toBeInTheDocument();
+  });
+
+  it('renders terminal fullscreen view in terminal mode', () => {
+    setupMocks({ viewMode: 'terminal', sidePanelMode: 'terminal' });
+
+    render(
+      <AppShell>
+        <div data-testid="child-content">Hello</div>
+      </AppShell>,
+    );
+
+    expect(screen.getByTestId('terminal-fullscreen')).toBeInTheDocument();
+    expect(screen.queryByTestId('child-content')).not.toBeInTheDocument();
+  });
+
+  it('renders focus view with no-agent message when no agent selected', () => {
+    setupMocks({ viewMode: 'focus' });
+
+    render(
+      <AppShell>
+        <div>Content</div>
+      </AppShell>,
+    );
+
+    expect(screen.getByTestId('focus-view')).toBeInTheDocument();
+    expect(screen.getByText('Select an agent to enter focus mode')).toBeInTheDocument();
   });
 });

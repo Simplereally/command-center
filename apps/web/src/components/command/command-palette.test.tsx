@@ -13,13 +13,17 @@ vi.mock('react-router', async (importOriginal: () => Promise<typeof import('reac
 
 const mockStartAgent = vi.fn();
 const mockStopAgent = vi.fn();
+const mockRestartAgent = vi.fn();
 const mockGetAgentById = vi.fn();
 const mockOpenTerminalPanel = vi.fn();
 const mockCloseSidePanel = vi.fn();
 const mockSelectAgent = vi.fn();
+const mockOpenDetailPanel = vi.fn();
 
-const { mockSelectedAgentId } = vi.hoisted(() => ({
+const { mockSelectedAgentId, mockAgents, mockBoards } = vi.hoisted(() => ({
   mockSelectedAgentId: { value: null as string | null },
+  mockAgents: { value: new Map<string, Record<string, unknown>>() },
+  mockBoards: { value: [] as Record<string, unknown>[] },
 }));
 
 vi.mock('../../stores/agent-store.js', () => ({
@@ -27,17 +31,34 @@ vi.mock('../../stores/agent-store.js', () => ({
     selector({
       startAgent: mockStartAgent,
       stopAgent: mockStopAgent,
+      restartAgent: mockRestartAgent,
       getAgentById: mockGetAgentById,
+      agents: mockAgents.value,
     }),
 }));
 
 vi.mock('../../stores/ui-store.js', () => ({
-  useUiStore: (selector: (state: Record<string, unknown>) => unknown) =>
+  useUiStore: Object.assign(
+    (selector: (state: Record<string, unknown>) => unknown) =>
+      selector({
+        selectedAgentId: mockSelectedAgentId.value,
+        openTerminalPanel: mockOpenTerminalPanel,
+        closeSidePanel: mockCloseSidePanel,
+        selectAgent: mockSelectAgent,
+        openDetailPanel: mockOpenDetailPanel,
+      }),
+    {
+      getState: () => ({
+        openCreateAgentDialog: vi.fn(),
+      }),
+    },
+  ),
+}));
+
+vi.mock('../../stores/board-store.js', () => ({
+  useBoardStore: (selector: (state: Record<string, unknown>) => unknown) =>
     selector({
-      selectedAgentId: mockSelectedAgentId.value,
-      openTerminalPanel: mockOpenTerminalPanel,
-      closeSidePanel: mockCloseSidePanel,
-      selectAgent: mockSelectAgent,
+      boards: mockBoards.value,
     }),
 }));
 
@@ -45,6 +66,8 @@ describe('CommandPalette', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockSelectedAgentId.value = null;
+    mockAgents.value = new Map();
+    mockBoards.value = [];
     mockGetAgentById.mockReturnValue(undefined);
   });
 
@@ -150,6 +173,123 @@ describe('CommandPalette', () => {
     });
   });
 
+  it('renders footer with navigation hints', () => {
+    render(<CommandPalette open={true} onClose={vi.fn()} />);
+    expect(screen.getByText('↑↓ Navigate')).toBeTruthy();
+    expect(screen.getByText('Enter Select')).toBeTruthy();
+    expect(screen.getByText('Esc Close')).toBeTruthy();
+  });
+
+  it('renders All Agents group when agents exist', () => {
+    mockAgents.value = new Map([
+      [
+        'agent-1',
+        { id: 'agent-1', name: 'My Agent', status: 'running', model: 'claude-4' },
+      ],
+    ]);
+
+    render(<CommandPalette open={true} onClose={vi.fn()} />);
+    expect(screen.getByText('All Agents')).toBeTruthy();
+    expect(screen.getByText('My Agent')).toBeTruthy();
+    expect(screen.getByText('Running')).toBeTruthy();
+    expect(screen.getByText('claude-4')).toBeTruthy();
+  });
+
+  it('renders Quick Actions for each agent', () => {
+    mockAgents.value = new Map([
+      [
+        'agent-1',
+        { id: 'agent-1', name: 'Worker', status: 'running', model: null },
+      ],
+    ]);
+
+    render(<CommandPalette open={true} onClose={vi.fn()} />);
+    expect(screen.getByText('Quick Actions')).toBeTruthy();
+    expect(screen.getByText('Stop Worker')).toBeTruthy();
+    expect(screen.getByText('Restart Worker')).toBeTruthy();
+    expect(screen.getByText('Open Terminal for Worker')).toBeTruthy();
+    expect(screen.getByText('View Logs for Worker')).toBeTruthy();
+  });
+
+  it('selects agent and opens detail panel when agent item is clicked', async () => {
+    mockAgents.value = new Map([
+      [
+        'agent-1',
+        { id: 'agent-1', name: 'My Agent', status: 'idle', model: null },
+      ],
+    ]);
+    const onClose = vi.fn();
+    const { user } = render(<CommandPalette open={true} onClose={onClose} />);
+
+    await user.click(screen.getByTestId('cmd-agent-agent-1'));
+    expect(mockSelectAgent).toHaveBeenCalledWith('agent-1');
+    expect(mockOpenDetailPanel).toHaveBeenCalledWith('agent-1');
+    expect(onClose).toHaveBeenCalledOnce();
+  });
+
+  it('renders Boards group when boards exist', () => {
+    mockBoards.value = [
+      { id: 'board-1', name: 'Project Alpha' },
+      { id: 'board-2', name: 'Project Beta' },
+    ];
+
+    render(<CommandPalette open={true} onClose={vi.fn()} />);
+    expect(screen.getByText('Boards')).toBeTruthy();
+    expect(screen.getByText('Project Alpha')).toBeTruthy();
+    expect(screen.getByText('Project Beta')).toBeTruthy();
+  });
+
+  it('navigates to board when a board item is clicked', async () => {
+    mockBoards.value = [{ id: 'board-1', name: 'Project Alpha' }];
+    const onClose = vi.fn();
+    const { user } = render(<CommandPalette open={true} onClose={onClose} />);
+
+    await user.click(screen.getByTestId('cmd-board-board-1'));
+    expect(mockNavigate).toHaveBeenCalledWith('/boards/board-1');
+    expect(onClose).toHaveBeenCalledOnce();
+  });
+
+  it('calls stopAgent when Stop quick action is clicked', async () => {
+    mockAgents.value = new Map([
+      [
+        'agent-1',
+        { id: 'agent-1', name: 'Worker', status: 'running', model: null },
+      ],
+    ]);
+    const onClose = vi.fn();
+    const { user } = render(<CommandPalette open={true} onClose={onClose} />);
+
+    await user.click(screen.getByTestId('cmd-stop-agent-1'));
+    expect(mockStopAgent).toHaveBeenCalledWith('agent-1');
+    expect(onClose).toHaveBeenCalledOnce();
+  });
+
+  it('calls restartAgent when Restart quick action is clicked', async () => {
+    mockAgents.value = new Map([
+      [
+        'agent-1',
+        { id: 'agent-1', name: 'Worker', status: 'running', model: null },
+      ],
+    ]);
+    const onClose = vi.fn();
+    const { user } = render(<CommandPalette open={true} onClose={onClose} />);
+
+    await user.click(screen.getByTestId('cmd-restart-agent-1'));
+    expect(mockRestartAgent).toHaveBeenCalledWith('agent-1');
+    expect(onClose).toHaveBeenCalledOnce();
+  });
+
+  it('does not render All Agents or Quick Actions when no agents exist', () => {
+    render(<CommandPalette open={true} onClose={vi.fn()} />);
+    expect(screen.queryByText('All Agents')).toBeNull();
+    expect(screen.queryByText('Quick Actions')).toBeNull();
+  });
+
+  it('does not render Boards group when no boards exist', () => {
+    render(<CommandPalette open={true} onClose={vi.fn()} />);
+    expect(screen.queryByText('Boards')).toBeNull();
+  });
+
   it('should have no accessibility violations when open', async () => {
     const { container } = render(<CommandPalette open={true} onClose={vi.fn()} />);
 
@@ -171,5 +311,107 @@ describe('CommandPalette', () => {
 
     const results = await axe(container);
     expect(results).toHaveNoViolations();
+  });
+
+  it('filters agents when searching by name', async () => {
+    mockAgents.value = new Map([
+      ['agent-1', { id: 'agent-1', name: 'Frontend Worker', status: 'running', model: null }],
+      ['agent-2', { id: 'agent-2', name: 'Backend API', status: 'idle', model: null }],
+    ]);
+
+    const { user } = render(<CommandPalette open={true} onClose={vi.fn()} />);
+    const input = screen.getByTestId('command-palette-input');
+    await user.type(input, 'Frontend');
+
+    await waitFor(() => {
+      expect(screen.getByText('Frontend Worker')).toBeTruthy();
+    });
+  });
+
+  it('calls openTerminalPanel when Open Terminal quick action is clicked for specific agent', async () => {
+    mockAgents.value = new Map([
+      ['agent-1', { id: 'agent-1', name: 'Worker', status: 'running', model: null }],
+    ]);
+    const onClose = vi.fn();
+    const { user } = render(<CommandPalette open={true} onClose={onClose} />);
+
+    await user.click(screen.getByTestId('cmd-terminal-agent-1'));
+    expect(mockOpenTerminalPanel).toHaveBeenCalledWith('agent-1');
+    expect(onClose).toHaveBeenCalledOnce();
+  });
+
+  it('opens detail panel via View Logs quick action', async () => {
+    mockAgents.value = new Map([
+      ['agent-1', { id: 'agent-1', name: 'Worker', status: 'running', model: null }],
+    ]);
+    const onClose = vi.fn();
+    const { user } = render(<CommandPalette open={true} onClose={onClose} />);
+
+    await user.click(screen.getByTestId('cmd-logs-agent-1'));
+    expect(mockSelectAgent).toHaveBeenCalledWith('agent-1');
+    expect(mockOpenDetailPanel).toHaveBeenCalledWith('agent-1');
+    expect(onClose).toHaveBeenCalledOnce();
+  });
+
+  it('shows multiple agents with their statuses', () => {
+    mockAgents.value = new Map([
+      ['agent-1', { id: 'agent-1', name: 'Agent A', status: 'running', model: 'gpt-4o' }],
+      ['agent-2', { id: 'agent-2', name: 'Agent B', status: 'idle', model: null }],
+      ['agent-3', { id: 'agent-3', name: 'Agent C', status: 'error', model: null }],
+    ]);
+
+    render(<CommandPalette open={true} onClose={vi.fn()} />);
+
+    expect(screen.getByText('Agent A')).toBeTruthy();
+    expect(screen.getByText('Agent B')).toBeTruthy();
+    expect(screen.getByText('Agent C')).toBeTruthy();
+    expect(screen.getByText('Running')).toBeTruthy();
+    expect(screen.getByText('Idle')).toBeTruthy();
+    expect(screen.getByText('Error')).toBeTruthy();
+  });
+
+  it('navigates to different boards', async () => {
+    mockBoards.value = [
+      { id: 'board-1', name: 'Project Alpha' },
+      { id: 'board-2', name: 'Project Beta' },
+    ];
+    const onClose = vi.fn();
+    const { user } = render(<CommandPalette open={true} onClose={onClose} />);
+
+    await user.click(screen.getByTestId('cmd-board-board-2'));
+    expect(mockNavigate).toHaveBeenCalledWith('/boards/board-2');
+    expect(onClose).toHaveBeenCalledOnce();
+  });
+
+  it('calls startAgent for the selected agent', async () => {
+    mockSelectedAgentId.value = 'agent-1';
+    mockGetAgentById.mockReturnValue({
+      id: 'agent-1',
+      name: 'Test Agent',
+      status: 'idle',
+      swimlaneId: 'lane-1',
+      position: 0,
+    });
+
+    const onClose = vi.fn();
+    const { user } = render(<CommandPalette open={true} onClose={onClose} />);
+    await user.click(screen.getByTestId('cmd-start-agent'));
+
+    expect(mockStartAgent).toHaveBeenCalledWith('agent-1');
+    expect(onClose).toHaveBeenCalledOnce();
+  });
+
+  it('renders quick actions for multiple agents', () => {
+    mockAgents.value = new Map([
+      ['agent-1', { id: 'agent-1', name: 'Alpha', status: 'running', model: null }],
+      ['agent-2', { id: 'agent-2', name: 'Beta', status: 'idle', model: null }],
+    ]);
+
+    render(<CommandPalette open={true} onClose={vi.fn()} />);
+
+    expect(screen.getByText('Stop Alpha')).toBeTruthy();
+    expect(screen.getByText('Restart Alpha')).toBeTruthy();
+    expect(screen.getByText('Stop Beta')).toBeTruthy();
+    expect(screen.getByText('Restart Beta')).toBeTruthy();
   });
 });

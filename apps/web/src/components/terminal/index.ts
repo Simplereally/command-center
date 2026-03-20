@@ -7,6 +7,6 @@ export type { TerminalSession, TerminalPanelProps } from './terminal-panel.js';
 
 export type { TerminalInstanceProps, TerminalInstanceRef } from './terminal-instance.js';
 
-export type { TerminalTab, TerminalTabsProps } from './terminal-tabs.js';
+export type { TerminalTab, TerminalTabsProps, TabConnectionStatus } from './terminal-tabs.js';
 
 export type { TerminalReconnectBannerProps } from './terminal-reconnect-banner.js';

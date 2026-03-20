@@ -335,7 +335,7 @@ describe('logResponseSchema', () => {
       id: 'log-123',
       agentId: 'agent-456',
       level: 'info',
-      message: 'Agent started successfully',
+      content: 'Agent started successfully',
       timestamp: '2025-01-01T00:00:00.000Z',
     });
     expect(result.success).toBe(true);
@@ -348,7 +348,7 @@ describe('logResponseSchema', () => {
         id: 'log-123',
         agentId: 'agent-456',
         level,
-        message: 'Test message',
+        content: 'Test message',
         timestamp: '2025-01-01T00:00:00.000Z',
       });
       expect(result.success).toBe(true);
@@ -360,7 +360,7 @@ describe('logResponseSchema', () => {
       id: 'log-123',
       agentId: 'agent-456',
       level: 'critical',
-      message: 'Test message',
+      content: 'Test message',
       timestamp: '2025-01-01T00:00:00.000Z',
     });
     expect(result.success).toBe(false);
