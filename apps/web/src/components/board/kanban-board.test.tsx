@@ -133,14 +133,15 @@ describe('KanbanBoard', () => {
     expect(screen.getByTestId('kanban-board')).toBeInTheDocument();
   });
 
-  it('shows loading spinner when loading and no swimlanes', () => {
+  it('shows skeleton loading state when loading and no swimlanes', () => {
     mockLoading.value = true;
     mockSwimlanes.value = [];
 
     render(<KanbanBoard />);
 
     expect(screen.getByTestId('kanban-board')).toBeInTheDocument();
-    expect(screen.getByTestId('kanban-board').querySelector('.animate-spin')).toBeInTheDocument();
+    const skeletons = screen.getAllByTestId('agent-card-skeleton');
+    expect(skeletons.length).toBeGreaterThan(0);
   });
 
   it('shows empty state when no agents', () => {

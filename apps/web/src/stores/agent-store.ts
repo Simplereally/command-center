@@ -24,6 +24,8 @@ export interface AgentState {
 
   fetchLatestLogs: (agentId: string) => Promise<void>;
 
+  clearAgents: () => void;
+
   getAgentsByLane: (swimlaneId: string) => AgentResponse[];
   getAgentById: (id: string) => AgentResponse | undefined;
 }
@@ -186,6 +188,13 @@ export const useAgentStore = create<AgentState>()(
       } catch {
         // Silently fail - logs are non-critical
       }
+    },
+
+    clearAgents: () => {
+      set((state) => {
+        state.agents = new Map();
+        state.loading = true;
+      });
     },
 
     getAgentsByLane: (swimlaneId: string) => {

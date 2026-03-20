@@ -17,6 +17,7 @@ export interface BoardState {
   updateBoard: (id: string, data: { name?: string }) => Promise<BoardResponse>;
   deleteBoard: (id: string) => Promise<void>;
   setCurrentBoard: (board: BoardResponse | null) => void;
+  clearSwimlanes: () => void;
 
   getSwimlaneBySlug: (slug: string) => SwimlaneResponse | undefined;
   getSwimlaneById: (id: string) => SwimlaneResponse | undefined;
@@ -165,6 +166,13 @@ export const useBoardStore = create<BoardState>()(
     setCurrentBoard: (board: BoardResponse | null) => {
       set((state) => {
         state.currentBoard = board;
+      });
+    },
+
+    clearSwimlanes: () => {
+      set((state) => {
+        state.swimlanes = [];
+        state.loading = true;
       });
     },
 
