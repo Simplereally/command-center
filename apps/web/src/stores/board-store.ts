@@ -141,20 +141,24 @@ export const useBoardStore = create<BoardState>()(
       }
     },
 
-    deleteBoard: async (id: string) => {
+    deleteBoard: async (id: string): Promise<DeleteBoardResult> => {
       const boardIndex = get().boards.findIndex((b) => b.id === id);
       const boardToDelete = boardIndex !== -1 ? get().boards[boardIndex] : null;
       const wasCurrentBoard = get().currentBoard?.id === id;
 
+      const remainingBoards = get().boards.filter((b) => b.id !== id);
+      const nextBoard = wasCurrentBoard ? (remainingBoards[0] ?? null) : null;
+
       set((state) => {
-        state.boards = state.boards.filter((b) => b.id !== id);
+        state.boards = remainingBoards;
         if (wasCurrentBoard) {
-          state.currentBoard = null;
+          state.currentBoard = nextBoard;
         }
       });
 
       try {
         await api.boards.delete(id);
+        return { wasCurrentBoard, nextBoard };
       } catch (err) {
         set((state) => {
           if (boardToDelete) {

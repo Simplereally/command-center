@@ -77,15 +77,17 @@ describe('boardStore deleteBoard', () => {
     expect(useBoardStore.getState().boards).toHaveLength(1);
   });
 
-  it('clears currentBoard if deleting the current board', async () => {
+  it('sets currentBoard to next available board if deleting the current board', async () => {
     useBoardStore.setState({
       boards: [...mockBoards],
       currentBoard: mockBoards[0]!,
     });
 
-    await useBoardStore.getState().deleteBoard('board-1');
+    const result = await useBoardStore.getState().deleteBoard('board-1');
 
-    expect(useBoardStore.getState().currentBoard).toBeNull();
+    expect(result.wasCurrentBoard).toBe(true);
+    expect(result.nextBoard).toEqual(mockBoards[1]);
+    expect(useBoardStore.getState().currentBoard).toEqual(mockBoards[1]);
   });
 
   it('does not clear currentBoard if deleting a different board', async () => {
