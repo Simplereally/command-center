@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Keyboard, Info, Server } from 'lucide-react';
+import { Link } from 'react-router';
+import { Keyboard, Info, Server, ArrowLeft } from 'lucide-react';
 import { KeyboardHelp } from '../components/ui/keyboard-help.js';
 import { cn } from '../lib/cn.js';
 
@@ -47,7 +48,7 @@ function GeneralSettingsSection() {
             <input
               id="api-url"
               type="text"
-              defaultValue="http://localhost:3001"
+              defaultValue="http://localhost:4000"
               className="w-full max-w-sm rounded-lg border border-border bg-background px-3 py-2 text-sm text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-accent"
             />
           </div>
@@ -130,6 +131,14 @@ export function SettingsPage() {
   return (
     <div className="flex h-screen flex-col bg-background">
       <header className="flex h-14 items-center gap-3 border-b border-border px-6">
+        <Link
+          to="/"
+          className="flex items-center gap-2 rounded-lg px-2 py-1 text-sm text-text-secondary hover:bg-surface-hover hover:text-text-primary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back
+        </Link>
+        <span className="text-border">|</span>
         <CurrentIcon className="h-5 w-5 text-text-secondary" />
         <h1 className="text-lg font-semibold text-text-primary">Settings</h1>
       </header>
