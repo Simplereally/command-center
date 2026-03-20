@@ -4,6 +4,14 @@ export { AgentStatus, VALID_TRANSITIONS, canTransition } from './constants/agent
 
 export { SWIMLANE_STATUS_MAP, SWIMLANE_DEFINITIONS } from './constants/swimlane-defaults.js';
 
+export {
+  PROVIDERS,
+  getProviderById,
+  getProviderForModel,
+} from './constants/providers.js';
+
+export type { AgentProvider, AgentModel, AuthMethod } from './constants/providers.js';
+
 // ── Schemas ──────────────────────────────────────────────────────────────────
 
 export {

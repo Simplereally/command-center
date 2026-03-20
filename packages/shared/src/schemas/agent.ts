@@ -16,6 +16,7 @@ export const createAgentSchema = z.object({
   name: z.string().min(1).max(128),
   boardId: z.string().min(1),
   swimlaneId: z.string().min(1),
+  model: z.string().min(1).optional(),
   workingDir: z.string().min(1).optional(),
   envVars: z.record(z.string(), z.string()).optional(),
   command: z.string().min(1).optional(),
