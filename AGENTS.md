@@ -5,7 +5,7 @@ This is a pnpm monorepo (`pnpm@9.15.4`, Node >= 22). Key apps live under `apps/`
 ### Web (`apps/web`)
 
 - **Dev server**: `pnpm dev:web` (Vite)
-- **Tests**: `pnpm test:web` (vitest with happy-dom)
+- **Tests**: `pnpm test:web` (vitest with jsdom)
 - **Typecheck**: `pnpm --filter @command-center/web run typecheck`
 - **Lint**: `pnpm --filter @command-center/web run lint`
 - Zustand stores (`stores/`) use `immer` middleware. Tests mock stores at the module level via `vi.mock()`.
@@ -29,3 +29,4 @@ This is a pnpm monorepo (`pnpm@9.15.4`, Node >= 22). Key apps live under `apps/`
 - The API listens on port 4000 by default (`PORT` env var).
 - WebSocket support is wired via `@hono/node-ws`. The `createNodeWebSocket` setup lives in `app.ts`; `injectWebSocket` must be called on the HTTP server in `index.ts`.
 - The tmux WebSocket route (`/sessions/:name/terminal`) is registered via `registerTerminalWebSocket()` called from `createApp()`, not at module load time, to avoid circular imports.
+- Vite dev server runs on port 5173 and proxies `/api` to the API on port 4000 (configured in `vite.config.ts`). Both `pnpm dev:web` and `pnpm dev:api` must be running for the full stack.
