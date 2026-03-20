@@ -14,8 +14,9 @@ export function SidePanel() {
   const sidePanelMode = useUiStore((s) => s.sidePanelMode);
   const selectedAgentId = useUiStore((s) => s.selectedAgentId);
   const closeSidePanel = useUiStore((s) => s.closeSidePanel);
-  const agents = useAgentStore((s) => s.agents);
-  const selectedAgent = selectedAgentId ? agents.get(selectedAgentId) : null;
+  const selectedAgent = useAgentStore((s) =>
+    selectedAgentId ? s.agents.get(selectedAgentId) ?? null : null,
+  );
   const prefersReducedMotion = useReducedMotion();
 
   const [terminalSessions, setTerminalSessions] = useState<TerminalSession[]>([]);

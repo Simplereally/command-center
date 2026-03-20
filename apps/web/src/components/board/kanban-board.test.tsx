@@ -190,4 +190,77 @@ describe('KanbanBoard', () => {
     expect(mockFetchSwimlanes).toHaveBeenCalledWith('board-1');
     expect(mockFetchAgents).toHaveBeenCalledWith('board-1');
   });
+
+  it('renders all four swimlanes in correct order', () => {
+    const lanes = [
+      makeSwimlane({ id: 'lane-4', slug: 'done', name: 'Done', position: 3 }),
+      makeSwimlane({ id: 'lane-1', slug: 'not-started', name: 'Not Started', position: 0 }),
+      makeSwimlane({ id: 'lane-3', slug: 'review', name: 'Review', position: 2 }),
+      makeSwimlane({ id: 'lane-2', slug: 'in-progress', name: 'In Progress', position: 1 }),
+    ];
+    mockSwimlanes.value = lanes;
+    mockAgents.value = new Map([['agent-1', makeAgent({ swimlaneId: 'lane-1' })]]);
+
+    render(<KanbanBoard />);
+
+    expect(screen.getByTestId('swimlane-not-started')).toBeInTheDocument();
+    expect(screen.getByTestId('swimlane-in-progress')).toBeInTheDocument();
+    expect(screen.getByTestId('swimlane-review')).toBeInTheDocument();
+    expect(screen.getByTestId('swimlane-done')).toBeInTheDocument();
+  });
+
+  it('calls fetchLatestLogs for running agents', () => {
+    mockSwimlanes.value = [makeSwimlane()];
+    mockAgents.value = new Map([
+      ['agent-1', makeAgent({ id: 'agent-1', status: 'running' })],
+      ['agent-2', makeAgent({ id: 'agent-2', status: 'idle' })],
+      ['agent-3', makeAgent({ id: 'agent-3', status: 'error' })],
+    ]);
+
+    render(<KanbanBoard />);
+
+    expect(mockFetchLatestLogs).toHaveBeenCalledWith('agent-1');
+    expect(mockFetchLatestLogs).toHaveBeenCalledWith('agent-3');
+    expect(mockFetchLatestLogs).not.toHaveBeenCalledWith('agent-2');
+  });
+
+  it('does not call fetchLatestLogs when no running or error agents', () => {
+    mockSwimlanes.value = [makeSwimlane()];
+    mockAgents.value = new Map([
+      ['agent-1', makeAgent({ id: 'agent-1', status: 'idle' })],
+      ['agent-2', makeAgent({ id: 'agent-2', status: 'stopped' })],
+    ]);
+
+    render(<KanbanBoard />);
+
+    expect(mockFetchLatestLogs).not.toHaveBeenCalled();
+  });
+
+  it('distributes agents across correct lanes', () => {
+    const lane1 = makeSwimlane({ id: 'lane-1', slug: 'not-started', name: 'Not Started', position: 0 });
+    const lane2 = makeSwimlane({ id: 'lane-2', slug: 'in-progress', name: 'In Progress', position: 1 });
+    mockSwimlanes.value = [lane1, lane2];
+    mockAgents.value = new Map([
+      ['agent-1', makeAgent({ id: 'agent-1', name: 'Agent A', swimlaneId: 'lane-1', position: 0 })],
+      ['agent-2', makeAgent({ id: 'agent-2', name: 'Agent B', swimlaneId: 'lane-2', position: 0 })],
+      ['agent-3', makeAgent({ id: 'agent-3', name: 'Agent C', swimlaneId: 'lane-1', position: 1 })],
+    ]);
+
+    render(<KanbanBoard />);
+
+    expect(screen.getByText('Agent A')).toBeInTheDocument();
+    expect(screen.getByText('Agent B')).toBeInTheDocument();
+    expect(screen.getByText('Agent C')).toBeInTheDocument();
+  });
+
+  it('shows board even when loading if swimlanes exist', () => {
+    mockLoading.value = true;
+    mockSwimlanes.value = [makeSwimlane()];
+    mockAgents.value = new Map([['agent-1', makeAgent()]]);
+
+    render(<KanbanBoard />);
+
+    expect(screen.getByTestId('kanban-board')).toBeInTheDocument();
+    expect(screen.getByTestId('swimlane-not-started')).toBeInTheDocument();
+  });
 });

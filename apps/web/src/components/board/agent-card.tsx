@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, memo } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Terminal, RotateCcw, Trash2, GripVertical } from 'lucide-react';
@@ -16,7 +16,7 @@ interface AgentCardProps {
   agent: AgentResponse;
 }
 
-export function AgentCard({ agent }: AgentCardProps) {
+export const AgentCard = memo(function AgentCard({ agent }: AgentCardProps) {
   const openDetailPanel = useUiStore((s) => s.openDetailPanel);
   const openTerminalPanel = useUiStore((s) => s.openTerminalPanel);
   const selectedAgentId = useUiStore((s) => s.selectedAgentId);
@@ -229,4 +229,4 @@ export function AgentCard({ agent }: AgentCardProps) {
       />
     </motion.div>
   );
-}
+});

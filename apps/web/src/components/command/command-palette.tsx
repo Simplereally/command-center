@@ -19,6 +19,36 @@ import { useAgentStore } from '../../stores/agent-store.js';
 import { useBoardStore } from '../../stores/board-store.js';
 import { useUiStore } from '../../stores/ui-store.js';
 
+const STATUS_LABELS: Record<string, string> = {
+  idle: 'Idle',
+  starting: 'Starting',
+  running: 'Running',
+  paused: 'Paused',
+  stopping: 'Stopping',
+  stopped: 'Stopped',
+  error: 'Error',
+  completed: 'Done',
+};
+
+const STATUS_COLORS: Record<string, string> = {
+  idle: 'bg-[var(--color-status-idle)]',
+  starting: 'bg-[var(--color-status-starting)]',
+  running: 'bg-[var(--color-status-running)]',
+  paused: 'bg-[var(--color-status-paused)]',
+  stopping: 'bg-[var(--color-status-stopping)]',
+  stopped: 'bg-[var(--color-status-idle)]',
+  error: 'bg-[var(--color-status-error)]',
+  completed: 'bg-[var(--color-status-completed)]',
+};
+
+function statusLabel(status: string): string {
+  return STATUS_LABELS[status] ?? status;
+}
+
+function statusColor(status: string): string {
+  return STATUS_COLORS[status] ?? 'bg-[var(--color-status-idle)]';
+}
+
 interface CommandPaletteProps {
   open: boolean;
   onClose: () => void;
@@ -63,34 +93,6 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
   }, [open, onClose]);
 
   if (!open) return null;
-
-  const statusLabel = (status: string): string => {
-    const labels: Record<string, string> = {
-      idle: 'Idle',
-      starting: 'Starting',
-      running: 'Running',
-      paused: 'Paused',
-      stopping: 'Stopping',
-      stopped: 'Stopped',
-      error: 'Error',
-      completed: 'Done',
-    };
-    return labels[status] ?? status;
-  };
-
-  const statusColor = (status: string): string => {
-    const colors: Record<string, string> = {
-      idle: 'bg-[var(--color-status-idle)]',
-      starting: 'bg-[var(--color-status-starting)]',
-      running: 'bg-[var(--color-status-running)]',
-      paused: 'bg-[var(--color-status-paused)]',
-      stopping: 'bg-[var(--color-status-stopping)]',
-      stopped: 'bg-[var(--color-status-idle)]',
-      error: 'bg-[var(--color-status-error)]',
-      completed: 'bg-[var(--color-status-completed)]',
-    };
-    return colors[status] ?? 'bg-[var(--color-status-idle)]';
-  };
 
   return (
     <>

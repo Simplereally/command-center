@@ -1,3 +1,4 @@
+import { useCallback } from 'react';
 import type { AgentResponse, UpdateAgent } from '@command-center/shared';
 import { useAgentStore } from '../../stores/agent-store.js';
 import { AgentStatusBadge } from './agent-status-badge.js';
@@ -16,11 +17,14 @@ function formatDate(iso: string): string {
 }
 
 export function AgentDetail({ agent }: AgentDetailProps) {
-  const { updateAgent } = useAgentStore();
+  const updateAgent = useAgentStore((s) => s.updateAgent);
 
-  const handleSave = async (data: UpdateAgent) => {
-    await updateAgent(agent.id, data);
-  };
+  const handleSave = useCallback(
+    async (data: UpdateAgent) => {
+      await updateAgent(agent.id, data);
+    },
+    [updateAgent, agent.id],
+  );
 
   return (
     <ErrorBoundary>

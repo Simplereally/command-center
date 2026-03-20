@@ -1,3 +1,4 @@
+import { memo, useMemo, useCallback } from 'react';
 import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { ChevronDown, ChevronRight } from 'lucide-react';
@@ -13,22 +14,29 @@ interface SwimlaneProps {
   isCollapsed: boolean;
 }
 
-export function Swimlane({ lane, agents, isCollapsed }: SwimlaneProps) {
+export const Swimlane = memo(function Swimlane({ lane, agents, isCollapsed }: SwimlaneProps) {
   const toggleLaneCollapse = useUiStore((s) => s.toggleLaneCollapse);
   const { setNodeRef, isOver } = useDroppable({ id: lane.id });
   const prefersReducedMotion = useReducedMotion();
 
-  const agentIds = agents.map((a) => a.id);
+  const agentIds = useMemo(() => agents.map((a) => a.id), [agents]);
+
+  const handleToggle = useCallback(() => {
+    toggleLaneCollapse(lane.id);
+  }, [toggleLaneCollapse, lane.id]);
 
   return (
     <div
       data-testid={`swimlane-${lane.slug}`}
-      className="flex w-72 shrink-0 flex-col rounded-lg bg-surface/50"
-      style={{ borderLeft: `3px solid ${lane.color}` }}
+      className="flex w-72 shrink-0 flex-col rounded-lg bg-surface/50 overflow-hidden"
     >
       <div
-        className="flex items-center justify-between px-3 py-2 cursor-pointer hover:bg-surface-hover rounded-t-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-        onClick={() => toggleLaneCollapse(lane.id)}
+        className="h-1 w-full shrink-0"
+        style={{ backgroundColor: lane.color }}
+      />
+      <div
+        className="flex items-center justify-between px-3 py-2 cursor-pointer hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+        onClick={handleToggle}
       >
         <div className="flex items-center gap-2">
           {isCollapsed ? (
@@ -81,4 +89,4 @@ export function Swimlane({ lane, agents, isCollapsed }: SwimlaneProps) {
       )}
     </div>
   );
-}
+});

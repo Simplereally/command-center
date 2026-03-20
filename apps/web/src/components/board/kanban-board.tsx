@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router';
 import {
   DndContext,
@@ -31,6 +31,8 @@ const LANE_TOAST_MESSAGES: Record<string, string> = {
   'review': 'Agent paused – moved to Review',
   'done': 'Agent stopped – moved to Done',
 };
+
+const EMPTY_AGENTS: AgentResponse[] = [];
 
 const openCreateAgentDialog = () => useUiStore.getState().openCreateAgentDialog();
 
@@ -69,12 +71,19 @@ export function KanbanBoard() {
     }
   }, [boardId, fetchBoard, fetchSwimlanes, fetchAgents, navigate]);
 
+  const prevRunningIdsRef = useRef<string>('');
   useEffect(() => {
-    const runningAgents = Array.from(agents.values()).filter(
-      (a) => a.status === 'running' || a.status === 'error',
-    );
-    for (const agent of runningAgents) {
-      fetchLatestLogs(agent.id);
+    const runningIds = Array.from(agents.values())
+      .filter((a) => a.status === 'running' || a.status === 'error')
+      .map((a) => a.id)
+      .sort()
+      .join(',');
+
+    if (runningIds === prevRunningIdsRef.current) return;
+    prevRunningIdsRef.current = runningIds;
+
+    for (const id of runningIds.split(',')) {
+      if (id) fetchLatestLogs(id);
     }
   }, [agents, fetchLatestLogs]);
 
@@ -112,7 +121,6 @@ export function KanbanBoard() {
         .filter((a) => a.swimlaneId === targetLane.id)
         .sort((a, b) => a.position - b.position);
 
-      // Within-lane reorder
       if (targetLane.id === originalSwimlaneId) {
         if (!overAgent || overAgent.id === agentId) return;
 
@@ -135,7 +143,6 @@ export function KanbanBoard() {
         return;
       }
 
-      // Cross-lane move
       const dropIndex = overAgent
         ? laneAgents.findIndex((a) => a.id === overAgent.id)
         : laneAgents.length;
@@ -163,9 +170,29 @@ export function KanbanBoard() {
     [agents, swimlanes, optimisticMove, commitMove, rollbackMove, boardId],
   );
 
-  const sortedLanes = [...swimlanes].sort((a, b) => a.position - b.position);
-  const allAgents = Array.from(agents.values());
+  const sortedLanes = useMemo(
+    () => [...swimlanes].sort((a, b) => a.position - b.position),
+    [swimlanes],
+  );
+
+  const allAgents = useMemo(() => Array.from(agents.values()), [agents]);
   const hasAgents = allAgents.length > 0;
+
+  const agentsByLane = useMemo(() => {
+    const map = new Map<string, AgentResponse[]>();
+    for (const agent of allAgents) {
+      let list = map.get(agent.swimlaneId);
+      if (!list) {
+        list = [];
+        map.set(agent.swimlaneId, list);
+      }
+      list.push(agent);
+    }
+    for (const list of map.values()) {
+      list.sort((a, b) => a.position - b.position);
+    }
+    return map;
+  }, [allAgents]);
 
   if (loading && sortedLanes.length === 0) {
     return (
@@ -196,16 +223,14 @@ export function KanbanBoard() {
       onDragEnd={handleDragEnd}
     >
       <div data-testid="kanban-board" className="flex h-full gap-4 overflow-x-auto p-4">
-        {sortedLanes.map((lane) => {
-          const laneAgents = allAgents
-            .filter((a) => a.swimlaneId === lane.id)
-            .sort((a, b) => a.position - b.position);
-          const isCollapsed = collapsedLanes.has(lane.id);
-
-          return (
-            <Swimlane key={lane.id} lane={lane} agents={laneAgents} isCollapsed={isCollapsed} />
-          );
-        })}
+        {sortedLanes.map((lane) => (
+          <Swimlane
+            key={lane.id}
+            lane={lane}
+            agents={agentsByLane.get(lane.id) ?? EMPTY_AGENTS}
+            isCollapsed={collapsedLanes.has(lane.id)}
+          />
+        ))}
       </div>
       <DragOverlay>{activeAgent ? <DragOverlayCard agent={activeAgent} /> : null}</DragOverlay>
     </DndContext>

@@ -349,4 +349,53 @@ describe('AgentCard', () => {
       expect(screen.queryByTestId('agent-card-agent-1-log-preview')).not.toBeInTheDocument();
     });
   });
+
+  describe('context menu actions', () => {
+    it('calls restartAgent when Restart is clicked in context menu', async () => {
+      const { user } = render(<AgentCard agent={makeAgent({ id: 'agent-1' })} />);
+
+      const card = screen.getByTestId('agent-card-agent-1');
+      fireEvent.contextMenu(card);
+
+      await user.click(screen.getByText('Restart'));
+
+      expect(mockRestartAgent).toHaveBeenCalledWith('agent-1');
+    });
+
+    it('closes context menu when Escape is pressed', () => {
+      render(<AgentCard agent={makeAgent({ id: 'agent-1' })} />);
+
+      const card = screen.getByTestId('agent-card-agent-1');
+      fireEvent.contextMenu(card);
+
+      expect(screen.getByTestId('agent-card-context-menu')).toBeInTheDocument();
+
+      fireEvent.keyDown(document, { key: 'Escape' });
+
+      expect(screen.queryByTestId('agent-card-context-menu')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('error states', () => {
+    it('shows error message indicator for error agent', () => {
+      render(
+        <AgentCard agent={makeAgent({ id: 'agent-1', status: 'error', errorMessage: 'OOM killed' })} />,
+      );
+
+      const card = screen.getByTestId('agent-card-agent-1');
+      expect(card).toHaveAttribute('aria-label', 'Agent: Test Agent, Status: error');
+    });
+
+    it('renders card for completed agent', () => {
+      render(<AgentCard agent={makeAgent({ status: 'completed' })} />);
+
+      expect(screen.getByTestId('agent-card-agent-1')).toBeInTheDocument();
+    });
+
+    it('renders card for stopped agent', () => {
+      render(<AgentCard agent={makeAgent({ status: 'stopped' })} />);
+
+      expect(screen.getByTestId('agent-card-agent-1')).toBeInTheDocument();
+    });
+  });
 });

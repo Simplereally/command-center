@@ -1,4 +1,6 @@
-export function EmptyLane() {
+import { memo } from 'react';
+
+export const EmptyLane = memo(function EmptyLane() {
   return (
     <div
       data-testid="empty-lane"
@@ -7,4 +9,4 @@ export function EmptyLane() {
       <span className="text-sm text-text-tertiary">Drag an agent here</span>
     </div>
   );
-}
+});

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useAgentStore } from '../../stores/agent-store.js';
 import { AgentStatus } from '@command-center/shared';
 import { api } from '../../lib/api-client.js';
@@ -24,10 +24,13 @@ const RELATIVE_TIME_TICK_MS = 1_000;
 export function StatusBar() {
   const agents = useAgentStore((s) => s.agents);
 
-  const runningCount = Array.from(agents.values()).filter(
-    (a) => a.status === AgentStatus.RUNNING,
-  ).length;
-  const totalCount = agents.size;
+  const { runningCount, totalCount } = useMemo(() => {
+    let running = 0;
+    for (const agent of agents.values()) {
+      if (agent.status === AgentStatus.RUNNING) running++;
+    }
+    return { runningCount: running, totalCount: agents.size };
+  }, [agents]);
 
   const [tmuxCount, setTmuxCount] = useState(0);
   const [lastEventTime, setLastEventTime] = useState<Date | null>(null);

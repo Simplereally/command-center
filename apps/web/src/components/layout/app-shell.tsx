@@ -1,10 +1,9 @@
-import type { ReactNode } from 'react';
+import { type ReactNode, lazy, Suspense, useMemo } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Maximize2 } from 'lucide-react';
 import { TopBar } from './top-bar.js';
 import { StatusBar } from './status-bar.js';
 import { SidePanel } from './side-panel.js';
-import { CommandPalette } from '../command/command-palette.js';
 import { ErrorBoundary } from '../error-boundary/index.js';
 import { useUiStore } from '../../stores/ui-store.js';
 import { useAgentStore } from '../../stores/agent-store.js';
@@ -12,6 +11,10 @@ import { AgentDetail } from '../agent/agent-detail.js';
 import { TerminalPanel } from '../terminal/terminal-panel.js';
 import { cn } from '../../lib/cn.js';
 import { useKeyboardShortcuts } from '../../hooks/use-keyboard-shortcuts.js';
+
+const LazyCommandPalette = lazy(() =>
+  import('../command/command-palette.js').then((m) => ({ default: m.CommandPalette })),
+);
 
 const WS_BASE_URL = 'ws://localhost:4000';
 
@@ -29,8 +32,21 @@ export function AppShell({ children }: AppShellProps) {
   const commandPaletteOpen = useUiStore((s) => s.commandPaletteOpen);
   const closeCommandPalette = useUiStore((s) => s.closeCommandPalette);
   const selectedAgentId = useUiStore((s) => s.selectedAgentId);
-  const agents = useAgentStore((s) => s.agents);
-  const selectedAgent = selectedAgentId ? agents.get(selectedAgentId) : null;
+  const selectedAgent = useAgentStore((s) =>
+    selectedAgentId ? s.agents.get(selectedAgentId) ?? null : null,
+  );
+
+  const focusSessions = useMemo(() => {
+    if (!selectedAgent?.tmuxSession) return [];
+    return [
+      {
+        id: selectedAgent.id,
+        name: selectedAgent.tmuxSession,
+        sessionId: selectedAgent.tmuxSession,
+        wsUrl: `${WS_BASE_URL}/api/v1/tmux/sessions/${selectedAgent.tmuxSession}/terminal`,
+      },
+    ];
+  }, [selectedAgent?.id, selectedAgent?.tmuxSession]);
 
   return (
     <ErrorBoundary>
@@ -93,18 +109,7 @@ export function AppShell({ children }: AppShellProps) {
                   </div>
                   <div className="h-1/2 overflow-hidden">
                     <TerminalPanel
-                      sessions={
-                        selectedAgent.tmuxSession
-                          ? [
-                              {
-                                id: selectedAgent.id,
-                                name: selectedAgent.tmuxSession,
-                                sessionId: selectedAgent.tmuxSession,
-                                wsUrl: `${WS_BASE_URL}/api/v1/tmux/sessions/${selectedAgent.tmuxSession}/terminal`,
-                              },
-                            ]
-                          : []
-                      }
+                      sessions={focusSessions}
                       activeSessionId={selectedAgent.tmuxSession ?? null}
                       onSessionSelect={() => {}}
                       onSessionClose={() => {}}
@@ -122,7 +127,11 @@ export function AppShell({ children }: AppShellProps) {
           )}
         </AnimatePresence>
         <StatusBar />
-        <CommandPalette open={commandPaletteOpen} onClose={closeCommandPalette} />
+        {commandPaletteOpen && (
+          <Suspense fallback={null}>
+            <LazyCommandPalette open={commandPaletteOpen} onClose={closeCommandPalette} />
+          </Suspense>
+        )}
       </div>
     </ErrorBoundary>
   );
