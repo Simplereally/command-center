@@ -28,3 +28,9 @@
 - `tmux` must be installed on the system (used for terminal sessions)
 - The Vite config proxies `/api` requests to the API server, so the frontend only needs the relative `/api/v1` prefix for REST calls; WebSocket URLs use `WS_BASE_URL` from constants
 - When adding new exports to `@command-center/shared`, vitest may cache stale module resolution. If tests fail with "undefined" imports from shared, clear vitest caches: `rm -rf apps/web/node_modules/.vite`
+
+### Terminal System Architecture
+- **Dual WebSocket pattern**: `terminal-instance.tsx` manages its own WS connection (tightly coupled to xterm.js lifecycle), while `terminal-store.ts` provides a centralized store for programmatic terminal access. Both are intentional — do not collapse into one pattern.
+- **Message format**: All WS messages use shared types from `@command-center/shared` (`terminal:input`, `terminal:output`, `terminal:resize`, `terminal:exit`, `terminal:error`) with `sessionId` field. Do not introduce new message types without updating the shared package.
+- **Backend handler**: `terminal-handler.ts` spawns `tmux attach -t <session>` per WS connection and kills the shell on disconnect. Multiple WS connections to the same tmux session are supported via `Set<ConnectionEntry>`.
+- **Reconnection**: The frontend uses exponential backoff (1s, 2s, 4s... up to 30s) with max 5 attempts. The `TerminalReconnectBanner` overlay shows during reconnection.
